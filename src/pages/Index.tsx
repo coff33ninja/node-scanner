@@ -1,8 +1,7 @@
 import { useState } from "react";
 import Layout from "@/components/Layout";
 import { DeviceCard } from "@/components/DeviceCard";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { AddDeviceDialog } from "@/components/AddDeviceDialog";
 
 const Index = () => {
   const [devices] = useState([
@@ -33,9 +32,7 @@ const Index = () => {
             Manage and monitor your network devices
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" /> Add Device
-        </Button>
+        <AddDeviceDialog />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
