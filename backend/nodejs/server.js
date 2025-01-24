@@ -1,11 +1,10 @@
-const express = require('express');
-const cors = require('cors');
-const NetworkScanner = require('./networkUtils');
+import express from 'express';
+import cors from 'cors';
+import { NetworkScanner } from './networkUtils.js';
 
 const app = express();
 const port = process.env.PORT || 3001;
 
-// Enable CORS for all routes
 app.use(cors());
 app.use(express.json());
 
