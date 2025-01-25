@@ -4,6 +4,41 @@
 
 **URL**: https://lovable.dev/projects/3c3d0ade-900a-4491-a1a3-2c2074e5511b
 
+## Running the Application
+
+To run this application, you'll need to start both the frontend and backend servers.
+
+### 1. Start the Backend Server
+
+First, navigate to the backend directory and start the Node.js server:
+
+```sh
+# Navigate to the nodejs backend directory
+cd backend/nodejs
+
+# Install dependencies (if not already installed)
+npm install
+
+# Start the backend server
+node server.js
+```
+
+The backend server will run on http://localhost:3001
+
+### 2. Start the Frontend Development Server
+
+In a new terminal window, from the project root directory:
+
+```sh
+# Install frontend dependencies
+npm install
+
+# Start the frontend development server
+npm run dev
+```
+
+The frontend will run on http://localhost:8080
+
 ## How can I edit this code?
 
 There are several ways of editing your application.
