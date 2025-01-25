@@ -52,13 +52,54 @@ npm run dev
 
 ## What technologies are used for this project?
 
-This project is built with .
+This project is built with:
 
 - Vite
 - TypeScript
 - React
 - shadcn-ui
 - Tailwind CSS
+
+### Backend Implementation
+
+This project includes two backend implementations for network utilities:
+
+**Python Backend**
+- Located in `backend/python/network_utils.py`
+- Requirements: `scapy`, `netifaces`
+- Features:
+  - Network scanning using ARP requests
+  - Wake-on-LAN (WOL) functionality
+  - Remote device shutdown capabilities
+- Installation:
+```sh
+pip install scapy netifaces
+```
+
+**Node.js Backend**
+- Located in `backend/nodejs/networkUtils.js`
+- Uses built-in Node.js modules (`dgram`, `net`)
+- Features:
+  - Network scanning using TCP connections
+  - Wake-on-LAN (WOL) functionality
+  - Remote device shutdown capabilities
+- Installation:
+```sh
+npm install
+```
+
+To use either backend:
+1. Choose your preferred implementation (Python or Node.js)
+2. Set up an API server (Flask/FastAPI for Python, Express for Node.js)
+3. Create endpoints that utilize the network utility functions
+4. Update the `API_BASE_URL` in `src/utils/networkUtils.ts` to point to your API server
+
+Example API endpoints:
+```
+POST /api/network/scan - Scan network for devices
+POST /api/network/wake - Wake a device using WOL
+POST /api/network/shutdown - Shutdown a device
+```
 
 ## How can I deploy this project?
 
