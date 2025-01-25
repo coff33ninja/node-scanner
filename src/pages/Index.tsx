@@ -1,4 +1,3 @@
-import { useState } from "react";
 import Layout from "@/components/Layout";
 import { DeviceCard } from "@/components/DeviceCard";
 import { AddDeviceDialog } from "@/components/AddDeviceDialog";
@@ -8,33 +7,54 @@ import { Button } from "@/components/ui/button";
 import { Moon, Sun, Power } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useToast } from "@/components/ui/use-toast";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { scanNetwork, wakeDevice, shutdownDevice } from "@/utils/networkUtils";
+import { useState } from "react";
 
 const Index = () => {
-  const [devices] = useState([
-    {
-      id: "1",
-      name: "Gateway",
-      ip: "192.168.1.1",
-      mac: "50:EB:39:0B:38:20",
-      status: "online" as const,
-      lastSeen: "Just now",
-      group: "Network",
-    },
-    {
-      id: "2",
-      name: "ASUSTeK Computer",
-      ip: "192.168.1.100",
-      mac: "40:B0:76:A4:1F:E3",
-      status: "offline" as const,
-      lastSeen: "11 hours ago",
-      group: "Workstations",
-    },
-  ]);
-
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
+
+  const { data: devices = [], isLoading } = useQuery({
+    queryKey: ['devices'],
+    queryFn: () => scanNetwork({ ipRange: '192.168.1.0/24' }),
+  });
+
+  const wakeMutation = useMutation({
+    mutationFn: (mac: string) => wakeDevice(mac),
+    onSuccess: () => {
+      toast({
+        title: "Wake command sent",
+        description: "The wake command has been sent to the device",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to wake device: " + error,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const shutdownMutation = useMutation({
+    mutationFn: (ip: string) => shutdownDevice(ip),
+    onSuccess: () => {
+      toast({
+        title: "Shutdown command sent",
+        description: "The shutdown command has been sent to the device",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to shutdown device: " + error,
+        variant: "destructive",
+      });
+    },
+  });
 
   const groups = ["Network", "Workstations", "Servers", "IoT"];
   
@@ -42,7 +62,7 @@ const Index = () => {
     ? devices 
     : devices.filter(device => device.group === selectedGroup);
 
-  const handleBatchOperation = (operation: "wake" | "shutdown") => {
+  const handleBatchOperation = async (operation: "wake" | "shutdown") => {
     if (selectedDevices.length === 0) {
       toast({
         title: "No devices selected",
@@ -51,17 +71,23 @@ const Index = () => {
       return;
     }
 
-    toast({
-      title: `Batch ${operation} initiated`,
-      description: `${operation === "wake" ? "Waking" : "Shutting down"} ${selectedDevices.length} devices...`,
-    });
+    for (const deviceId of selectedDevices) {
+      const device = devices.find(d => d.id === deviceId);
+      if (!device) continue;
+
+      if (operation === "wake") {
+        await wakeMutation.mutateAsync(device.mac);
+      } else {
+        await shutdownMutation.mutateAsync(device.ip);
+      }
+    }
   };
 
   return (
     <Layout>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Devices</h1>
+          <h1 className="text-3xl font-bold">Network Devices</h1>
           <p className="text-muted-foreground">
             Manage and monitor your network devices
           </p>
@@ -104,7 +130,7 @@ const Index = () => {
           <Button
             variant="outline"
             onClick={() => handleBatchOperation("wake")}
-            disabled={selectedDevices.length === 0}
+            disabled={selectedDevices.length === 0 || wakeMutation.isPending}
           >
             <Power className="mr-2 h-4 w-4" />
             Wake Selected
@@ -112,7 +138,7 @@ const Index = () => {
           <Button
             variant="outline"
             onClick={() => handleBatchOperation("shutdown")}
-            disabled={selectedDevices.length === 0}
+            disabled={selectedDevices.length === 0 || shutdownMutation.isPending}
           >
             <Power className="mr-2 h-4 w-4" />
             Shutdown Selected
@@ -120,19 +146,23 @@ const Index = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredDevices.map((device) => (
-          <DeviceCard
-            key={device.id}
-            name={device.name}
-            ip={device.ip}
-            mac={device.mac}
-            status={device.status}
-            lastSeen={device.lastSeen}
-            onDelete={() => console.log("Delete", device.id)}
-          />
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="text-center py-8">Loading devices...</div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {filteredDevices.map((device) => (
+            <DeviceCard
+              key={device.id}
+              name={device.name}
+              ip={device.ip}
+              mac={device.mac}
+              status={device.status}
+              lastSeen={device.lastSeen}
+              onDelete={() => console.log("Delete", device.id)}
+            />
+          ))}
+        </div>
+      )}
     </Layout>
   );
 };
