@@ -1,11 +1,13 @@
 // Network scanning and WOL utilities
 export interface NetworkDevice {
+  id: string;
   name: string;
   ip: string;
   mac: string;
   vendor?: string;
   status: 'online' | 'offline';
   lastSeen: string;
+  group?: string;
 }
 
 export interface ScanOptions {
