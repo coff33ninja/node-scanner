@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card"; 
+import { Button } from "components/ui/button"; 
 import { Power, Settings, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useToast } from "@/components/ui/use-toast";
+import { cn } from "@/lib/utils"; 
+import { useToast } from "components/ui/use-toast"; 
 import { DeviceSettingsDialog } from "./DeviceSettingsDialog";
 
 interface DeviceCardProps {
@@ -12,6 +12,7 @@ interface DeviceCardProps {
   mac: string;
   status: "online" | "offline";
   lastSeen: string;
+  openPorts: number[]; 
   onDelete?: () => void;
 }
 
@@ -21,6 +22,7 @@ export const DeviceCard = ({
   mac,
   status,
   lastSeen,
+  openPorts, 
   onDelete,
 }: DeviceCardProps) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -30,7 +32,6 @@ export const DeviceCard = ({
   const handleWakeDevice = async () => {
     setIsLoading(true);
     try {
-      // Wake device logic here
       toast({
         title: "Wake command sent",
         description: `Attempting to wake ${name}...`,
@@ -61,8 +62,20 @@ export const DeviceCard = ({
                 )}
               />
               <div>
-                <h3 className="text-lg font-semibold">{name}</h3>
-                <p className="text-sm text-muted-foreground">{ip}</p>
+                <h3 className="text-lg font-semibold">
+                  <a href={`/device/${ip}`}>{name}</a>
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  IP: <a href={`http://${ip}`}>{ip}</a>
+                </p>
+                <p className="text-sm text-muted-foreground">Open Ports:</p>
+                <ul>
+                  {openPorts.map(port => (
+                    <li key={port}>
+                      <a href={`http://${ip}:${port}`}>Port {port}</a>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
             <div className="flex items-center space-x-2">

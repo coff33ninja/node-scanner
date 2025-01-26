@@ -4,6 +4,7 @@ import subprocess
 from typing import List, Dict
 import scapy.all as scapy
 import netifaces
+import sys
 
 class NetworkScanner:
     def __init__(self):
@@ -57,6 +58,19 @@ class NetworkScanner:
         except Exception as e:
             print(f"Error sending WOL packet: {e}")
             return False
+
+    def scan_ports(self, ip: str, start_port: int = 1, end_port: int = 65535) -> List[int]:
+        """
+        Scan for open ports on a given IP address.
+        Returns a list of open ports.
+        """
+        open_ports = []
+        for port in range(start_port, end_port + 1):
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.settimeout(1)
+                if sock.connect_ex((ip, port)) == 0:
+                    open_ports.append(port)
+        return open_ports
 
     def shutdown_device(self, ip: str, username: str = None, password: str = None) -> bool:
         """

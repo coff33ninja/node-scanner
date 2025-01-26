@@ -43,6 +43,20 @@ app.post('/api/network/shutdown', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+app.get('/api/devices', async (req, res) => {
+  try {
+    const devices = await networkScanner.scanNetwork('192.168.1.0/24'); // Example IP range
+    const results = await Promise.all(devices.map(async (device) => {
+      const openPorts = await networkScanner.scan_ports(device.ip);
+      return {
+        name: device.name,
+        ip: device.ip,
+        openPorts: openPorts
+      };
+    }));
+    res.json(results);
+  } catch (error) {
+    console.error('Device scan error:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
