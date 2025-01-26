@@ -17,47 +17,131 @@ export class NetworkScanner {
     return null;
   }
 
+  async getMacFromArp(ip) {
+    return new Promise((resolve) => {
+      const cmd = process.platform === 'win32' 
+        ? `arp -a ${ip}` 
+        : `arp -n ${ip}`;
+
+      exec(cmd, (error, stdout) => {
+        if (error) {
+          console.error(`Error getting MAC for ${ip}:`, error);
+          resolve(null);
+          return;
+        }
+
+        const lines = stdout.split('\n');
+        for (const line of lines) {
+          // Match MAC address pattern
+          const match = line.match(/([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})/);
+          if (match) {
+            resolve(match[0]);
+            return;
+          }
+        }
+        resolve(null);
+      });
+    });
+  }
+
   async scanNetwork(ipRange) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve) => {
       const devices = [];
       const [baseIp, subnet] = ipRange.split('/');
       const baseIpParts = baseIp.split('.');
       const hosts = Math.pow(2, 32 - parseInt(subnet));
+      const scanPromises = [];
 
-      let completed = 0;
-
+      // Ping sweep for faster initial discovery
+      const pingPromises = [];
       for (let i = 1; i < hosts - 1; i++) {
         const ip = `${baseIpParts[0]}.${baseIpParts[1]}.${baseIpParts[2]}.${i}`;
-        const socket = new net.Socket();
+        const cmd = process.platform === 'win32'
+          ? `ping -n 1 -w 100 ${ip}`
+          : `ping -c 1 -W 1 ${ip}`;
 
-        socket.setTimeout(1000);
-
-        socket.on('connect', () => {
-          devices.push({
-            ip,
-            status: 'online',
-            lastSeen: new Date().toISOString(),
-          });
-          socket.destroy();
-        });
-
-        socket.on('error', () => {
-          socket.destroy();
-        });
-
-        socket.on('timeout', () => {
-          socket.destroy();
-        });
-
-        socket.on('close', () => {
-          completed++;
-          if (completed === hosts - 2) {
-            resolve(devices);
-          }
-        });
-
-        socket.connect(80, ip);
+        pingPromises.push(
+          new Promise((resolve) => {
+            exec(cmd, (error, stdout) => {
+              if (!error && stdout.includes('TTL=') || stdout.includes('ttl=')) {
+                resolve(ip);
+              } else {
+                resolve(null);
+              }
+            });
+          })
+        );
       }
+
+      // Wait for all pings to complete
+      const activeIps = (await Promise.all(pingPromises)).filter(ip => ip !== null);
+
+      // For each responding IP, do a more detailed scan
+      for (const ip of activeIps) {
+        scanPromises.push(
+          new Promise(async (resolve) => {
+            try {
+              const socket = new net.Socket();
+              socket.setTimeout(500);
+
+              // Try to get MAC address
+              const mac = await this.getMacFromArp(ip);
+              
+              // Try common ports
+              const commonPorts = [80, 443, 22, 445, 139];
+              let isAnyPortOpen = false;
+
+              for (const port of commonPorts) {
+                try {
+                  await new Promise((resolve, reject) => {
+                    const portSocket = new net.Socket();
+                    portSocket.setTimeout(500);
+                    
+                    portSocket.on('connect', () => {
+                      isAnyPortOpen = true;
+                      portSocket.destroy();
+                      resolve(true);
+                    });
+                    
+                    portSocket.on('error', () => {
+                      portSocket.destroy();
+                      resolve(false);
+                    });
+                    
+                    portSocket.on('timeout', () => {
+                      portSocket.destroy();
+                      resolve(false);
+                    });
+                    
+                    portSocket.connect(port, ip);
+                  });
+                  
+                  if (isAnyPortOpen) break;
+                } catch (err) {
+                  console.error(`Error scanning port ${port} on ${ip}:`, err);
+                }
+              }
+
+              if (isAnyPortOpen || mac) {
+                devices.push({
+                  ip,
+                  mac: mac || 'Unknown',
+                  status: 'online',
+                  name: `Device (${ip})`,
+                  lastSeen: new Date().toISOString(),
+                });
+              }
+            } catch (err) {
+              console.error(`Error scanning ${ip}:`, err);
+            }
+            resolve();
+          })
+        );
+      }
+
+      // Wait for all detailed scans to complete
+      await Promise.all(scanPromises);
+      resolve(devices);
     });
   }
 
