@@ -1,5 +1,3 @@
-# Welcome to Your Project
-
 ## Project Overview
 
 This project is designed to provide network utilities using both Python and Node.js. It features functionalities such as network scanning and Wake-on-LAN (WOL).
