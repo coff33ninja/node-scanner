@@ -8,7 +8,31 @@ export const errorHandler = (
   next: NextFunction
 ) => {
   logger.error(err.message);
-  res.status(500).json({
+
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({
+      success: false,
+      error: 'Validation Error',
+      details: err.message
+    });
+  }
+
+  if (err.name === 'UnauthorizedError') {
+    return res.status(401).json({
+      success: false,
+      error: 'Unauthorized'
+    });
+  }
+
+  if (err.name === 'JsonWebTokenError') {
+    return res.status(401).json({
+      success: false,
+      error: 'Invalid token'
+    });
+  }
+
+  // Default to 500 server error
+  return res.status(500).json({
     success: false,
     error: 'Server Error'
   });

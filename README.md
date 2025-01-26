@@ -1,117 +1,142 @@
+# AltTab - Network Management Dashboard
+
+A comprehensive network management dashboard with device control, user authentication, and network utilities.
+
 ## Project Overview
 
-This project is designed to provide network utilities using both Python and Node.js. It features functionalities such as network scanning and Wake-on-LAN (WOL).
+This project provides a modern web interface for network management, featuring:
 
-## Installation Requirements
+- User authentication and account management
+- Network scanning and device discovery
+- Wake-on-LAN (WOL) functionality
+- Device monitoring and control
+- Multi-user access with role-based permissions
 
-To run this application, ensure you have the following installed:
+## Prerequisites
 
+Before you begin, ensure you have the following installed:
+
+- **Node.js**: Version 16.x or higher
 - **Python**: Version 3.x
-- **Node.js**: Version 14.x or higher
+- **MongoDB**: Version 4.x or higher
+- **npm** or **yarn** package manager
 
 ## Installation Instructions
 
-### 1. Install Python Packages
+### 1. Clone the Repository
 
-To install the required Python packages, you can use the provided installation script or install them manually:
-
-#### Using the Installation Script
-
-Run the following command in your terminal:
-
-```sh
-python backend/python/install_requirements.py
+```bash
+git clone https://github.com/yourusername/alttab.git
+cd alttab
 ```
 
-#### Manually Install Packages
+### 2. Environment Setup
 
-Alternatively, you can install the required packages using pip:
+Create a `.env` file in the `backend/nodejs` directory:
 
-```sh
-pip install scapy netifaces
+```env
+PORT=5000
+MONGODB_URI=mongodb://localhost:27017/alttab
+JWT_SECRET=your-secret-key
+JWT_REFRESH_SECRET=your-refresh-secret-key
+FRONTEND_URL=http://localhost:3000
 ```
 
-### 2. Install Node.js Dependencies
+### 3. Install Dependencies
 
-Navigate to the Node.js backend directory and install the dependencies:
+#### Backend Dependencies
 
-```sh
-# Navigate to the nodejs backend directory
+```bash
+# Install Node.js backend dependencies
 cd backend/nodejs
+npm install
 
-# Install dependencies (if not already installed)
+# Install Python dependencies
+cd ../python
+python install_requirements.py
+# Or manually: pip install scapy netifaces
+```
+
+#### Frontend Dependencies
+
+```bash
+# From project root
 npm install
 ```
+
+### 4. Database Setup
+
+1. Install MongoDB if you haven't already:
+   - [MongoDB Installation Guide](https://docs.mongodb.com/manual/installation/)
+
+2. Start MongoDB service:
+   ```bash
+   # On Windows
+   net start MongoDB
+
+   # On macOS/Linux
+   sudo systemctl start mongod
+   ```
 
 ## Running the Application
 
-To run this application, you'll need to start both the frontend and backend servers.
+### 1. Start the Backend Servers
 
-### 1. Start the Backend Server
+```bash
+# Start Node.js backend (from backend/nodejs directory)
+npm run dev
 
-In the `backend/nodejs` directory, start the Node.js server:
-
-```sh
-# Start the backend server
-node server.js
+# The server will start on http://localhost:5000
 ```
-
-The backend server will run on [http://localhost:3001](http://localhost:3001).
 
 ### 2. Start the Frontend Development Server
 
-In a new terminal window, from the project root directory:
-
-```sh
-# Install frontend dependencies
-npm install
-
-# Start the frontend development server
+```bash
+# From project root
 npm run dev
+
+# The frontend will start on http://localhost:3000
 ```
 
-The frontend will run on [http://localhost:8080](http://localhost:8080).
+## Features
 
-## What Technologies Are Used for This Project?
+### Authentication System
+- User registration with email verification
+- Secure login with JWT tokens
+- Password recovery
+- Two-factor authentication (optional)
+- Session management
 
-This project is built with:
+### Network Utilities
+- Network scanning using ARP requests (Python)
+- TCP-based device discovery (Node.js)
+- Wake-on-LAN (WOL) functionality
+- Remote device shutdown capabilities
 
-- Vite
+### User Interface
+- Modern, responsive design
+- Dark/light theme support
+- Real-time device status updates
+- Interactive network topology view
+
+## Technology Stack
+
+### Frontend
+- React with TypeScript
+- Vite for build tooling
+- TailwindCSS for styling
+- Shadcn UI components
+- React Router for navigation
+- Context API for state management
+
+### Backend
+- Node.js with Express
 - TypeScript
-- React
-- Tailwind CSS
+- MongoDB with Mongoose
+- JWT for authentication
+- Python for network utilities
+- WebSocket for real-time updates
 
-### Backend Implementation
+## Development
 
-This project includes two backend implementations for network utilities:
-
-**Python Backend**
-- Located in `backend/python/network_utils.py`
-- Features:
-  - Network scanning using ARP requests
-  - Wake-on-LAN (WOL) functionality
-  - Remote device shutdown capabilities
-
-**Node.js Backend**
-- Located in `backend/nodejs/networkUtils.js`
-- Uses built-in Node.js modules (`dgram`, `net`)
-- Features:
-  - Network scanning using TCP connections
-  - Wake-on-LAN (WOL) functionality
-  - Remote device shutdown capabilities
-
-## Optional Run Method
-
-To quickly launch both the backend and frontend servers, you can use the following commands in separate terminal windows:
-
-```sh
-# Start the backend server
-cd backend/nodejs && node server.js &
-
-# Start the frontend development server
-cd .. && npm run dev
-```
-
-## How Can I Deploy This Project?
-
-Simply follow the deployment instructions for your chosen platform.
+### Code Structure
