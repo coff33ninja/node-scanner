@@ -4,7 +4,7 @@ import { AddDeviceDialog } from "@/components/AddDeviceDialog";
 import { DeviceStats } from "@/components/DeviceStats";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Power } from "lucide-react";
+import { Moon, Sun, Power, RefreshCw } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useToast } from "@/components/ui/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -17,10 +17,19 @@ const Index = () => {
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
 
-  const { data: devices = [], isLoading } = useQuery({
+  const { data: devices = [], isLoading, refetch } = useQuery({
     queryKey: ['devices'],
     queryFn: () => scanNetwork({ ipRange: '192.168.1.0/24' }),
+    refetchOnWindowFocus: false,
   });
+
+  const handleScanNetwork = async () => {
+    toast({
+      title: "Scanning Network",
+      description: "Looking for devices on your network...",
+    });
+    await refetch();
+  };
 
   const wakeMutation = useMutation({
     mutationFn: (mac: string) => wakeDevice(mac),
@@ -29,6 +38,7 @@ const Index = () => {
         title: "Wake command sent",
         description: "The wake command has been sent to the device",
       });
+      refetch();
     },
     onError: (error) => {
       toast({
@@ -46,6 +56,7 @@ const Index = () => {
         title: "Shutdown command sent",
         description: "The shutdown command has been sent to the device",
       });
+      refetch();
     },
     onError: (error) => {
       toast({
@@ -62,27 +73,6 @@ const Index = () => {
     ? devices 
     : devices.filter(device => device.group === selectedGroup);
 
-  const handleBatchOperation = async (operation: "wake" | "shutdown") => {
-    if (selectedDevices.length === 0) {
-      toast({
-        title: "No devices selected",
-        description: "Please select at least one device to perform this operation.",
-      });
-      return;
-    }
-
-    for (const deviceId of selectedDevices) {
-      const device = devices.find(d => d.id === deviceId);
-      if (!device) continue;
-
-      if (operation === "wake") {
-        await wakeMutation.mutateAsync(device.mac);
-      } else {
-        await shutdownMutation.mutateAsync(device.ip);
-      }
-    }
-  };
-
   return (
     <Layout>
       <div className="flex items-center justify-between mb-8">
@@ -93,6 +83,14 @@ const Index = () => {
           </p>
         </div>
         <div className="flex items-center space-x-4">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleScanNetwork}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -109,7 +107,7 @@ const Index = () => {
         </div>
       </div>
 
-      <DeviceStats />
+      <DeviceStats devices={devices} />
 
       <div className="flex items-center justify-between mb-6">
         <Select value={selectedGroup} onValueChange={setSelectedGroup}>
@@ -125,40 +123,25 @@ const Index = () => {
             ))}
           </SelectContent>
         </Select>
-
-        <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            onClick={() => handleBatchOperation("wake")}
-            disabled={selectedDevices.length === 0 || wakeMutation.isPending}
-          >
-            <Power className="mr-2 h-4 w-4" />
-            Wake Selected
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => handleBatchOperation("shutdown")}
-            disabled={selectedDevices.length === 0 || shutdownMutation.isPending}
-          >
-            <Power className="mr-2 h-4 w-4" />
-            Shutdown Selected
-          </Button>
-        </div>
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8">Loading devices...</div>
+        <div className="text-center py-8">Scanning network...</div>
+      ) : devices.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          No devices found. Click the refresh button to scan for devices.
+        </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredDevices.map((device) => (
             <DeviceCard
-              key={device.id}
-              name={device.name}
+              key={device.ip}
+              name={device.name || `Device (${device.ip})`}
               ip={device.ip}
               mac={device.mac}
               status={device.status}
               lastSeen={device.lastSeen}
-              onDelete={() => console.log("Delete", device.id)}
+              onDelete={() => console.log("Delete", device.ip)}
             />
           ))}
         </div>

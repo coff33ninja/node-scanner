@@ -1,43 +1,28 @@
 import { Card } from "@/components/ui/card";
-import { BarChart, Activity, Wifi } from "lucide-react";
+import { NetworkDevice } from "@/utils/networkUtils";
 
-export const DeviceStats = () => {
+interface DeviceStatsProps {
+  devices: NetworkDevice[];
+}
+
+export const DeviceStats = ({ devices }: DeviceStatsProps) => {
+  const onlineDevices = devices.filter(device => device.status === 'online').length;
+  const offlineDevices = devices.filter(device => device.status === 'offline').length;
+  const totalDevices = devices.length;
+
   return (
     <div className="grid gap-4 md:grid-cols-3 mb-8">
       <Card className="p-4">
-        <div className="flex items-center space-x-4">
-          <div className="bg-primary/10 p-2 rounded-full">
-            <Wifi className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Online Devices</p>
-            <h3 className="text-2xl font-bold">12/15</h3>
-          </div>
-        </div>
+        <h3 className="text-sm font-medium text-muted-foreground">Online Devices</h3>
+        <p className="text-2xl font-bold">{onlineDevices}</p>
       </Card>
-      
       <Card className="p-4">
-        <div className="flex items-center space-x-4">
-          <div className="bg-primary/10 p-2 rounded-full">
-            <Activity className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Network Health</p>
-            <h3 className="text-2xl font-bold">98%</h3>
-          </div>
-        </div>
+        <h3 className="text-sm font-medium text-muted-foreground">Offline Devices</h3>
+        <p className="text-2xl font-bold">{offlineDevices}</p>
       </Card>
-
       <Card className="p-4">
-        <div className="flex items-center space-x-4">
-          <div className="bg-primary/10 p-2 rounded-full">
-            <BarChart className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Active Groups</p>
-            <h3 className="text-2xl font-bold">4</h3>
-          </div>
-        </div>
+        <h3 className="text-sm font-medium text-muted-foreground">Total Devices</h3>
+        <p className="text-2xl font-bold">{totalDevices}</p>
       </Card>
     </div>
   );

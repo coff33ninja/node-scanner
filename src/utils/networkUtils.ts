@@ -1,6 +1,7 @@
-// Network scanning and WOL utilities
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 export interface NetworkDevice {
-  id: string;
+  id?: string;
   name: string;
   ip: string;
   mac: string;
@@ -15,8 +16,6 @@ export interface ScanOptions {
   timeout?: number;
   ports?: number[];
 }
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export const scanNetwork = async (options: ScanOptions): Promise<NetworkDevice[]> => {
   try {
@@ -35,7 +34,7 @@ export const scanNetwork = async (options: ScanOptions): Promise<NetworkDevice[]
     return await response.json();
   } catch (error) {
     console.error('Error scanning network:', error);
-    return [];
+    throw error;
   }
 };
 
@@ -53,10 +52,11 @@ export const wakeDevice = async (mac: string): Promise<boolean> => {
       throw new Error('Wake-on-LAN failed');
     }
     
-    return true;
+    const result = await response.json();
+    return result.success;
   } catch (error) {
     console.error('Error waking device:', error);
-    return false;
+    throw error;
   }
 };
 
@@ -74,9 +74,10 @@ export const shutdownDevice = async (ip: string, username?: string, password?: s
       throw new Error('Device shutdown failed');
     }
     
-    return true;
+    const result = await response.json();
+    return result.success;
   } catch (error) {
     console.error('Error shutting down device:', error);
-    return false;
+    throw error;
   }
 };
