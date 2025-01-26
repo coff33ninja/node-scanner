@@ -1,24 +1,28 @@
-import Layout from "../components/Layout"; // Correct relative path
-import { DeviceCard } from "../components/DeviceCard"; // Correct relative path
-import { AddDeviceDialog } from "../components/AddDeviceDialog"; // Correct relative path
-import { DeviceStats } from "../components/DeviceStats"; // Correct relative path
+import Layout from "../components/Layout"; 
+import { DeviceCard } from "../components/DeviceCard"; 
+import { AddDeviceDialog } from "../components/AddDeviceDialog"; 
+import { DeviceStats } from "../components/DeviceStats"; 
 import { useEffect, useState } from "react";
-import { NetworkDevice } from "../utils/networkUtils"; // Correct relative path
-import { useToast } from "../components/ui/use-toast"; // Correct relative path
-import axios from 'axios'; // Import axios for API calls
+import { NetworkDevice } from "../utils/networkUtils"; 
+import { useToast } from "../components/ui/use-toast"; 
+import axios from 'axios'; 
+
 const STORAGE_KEY = 'network-devices';
 
 const Index = () => {
   const [devices, setDevices] = useState<NetworkDevice[]>([]);
   const { toast } = useToast();
 
-  // Load devices from localStorage on component mount
   useEffect(() => {
     const storedDevices = localStorage.getItem(STORAGE_KEY);
     if (storedDevices) {
       try {
         const parsedDevices = JSON.parse(storedDevices);
-        setDevices(parsedDevices);
+        if (Array.isArray(parsedDevices)) {
+          setDevices(parsedDevices);
+        } else {
+          throw new Error("Parsed devices is not an array");
+        }
       } catch (error) {
         console.error('Error parsing stored devices:', error);
         toast({
@@ -28,16 +32,21 @@ const Index = () => {
         });
       }
     }
-  }, [toast]); // Added toast to the dependency array
+  }, [toast]);
 
-  // Fetch devices from the backend
   useEffect(() => {
     const fetchDevices = async () => {
       console.log("Fetching devices from API...");
       try {
-        const response = await axios.get('/api/scan-network'); // Adjust the endpoint as necessary
-        setDevices(response.data);
-        console.log("Devices fetched:", response.data); // Log the response data
+        const response = await axios.get('/api/scan-network');
+        console.log("Response status:", response.status);
+        console.log("Response data:", response.data);
+        if (Array.isArray(response.data)) {
+          setDevices(response.data);
+          console.log("Devices fetched:", response.data);
+        } else {
+          throw new Error("Response data is not an array");
+        }
       } catch (error) {
         console.error('Error fetching devices:', error);
       }
@@ -46,14 +55,12 @@ const Index = () => {
     fetchDevices();
   }, []);
 
-  // Save devices to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
   }, [devices]);
 
   const handleAddDevice = (device: NetworkDevice) => {
     setDevices(prev => {
-      // Check if device already exists
       const exists = prev.some(d => d.ip === device.ip);
       if (exists) {
         toast({
