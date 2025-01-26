@@ -42,7 +42,6 @@ const Index = () => {
         
         if (Array.isArray(response.data)) {
           setDevices(prevDevices => {
-            // Merge new devices with existing ones, avoiding duplicates
             const newDevices = response.data.filter(newDevice => 
               !prevDevices.some(existingDevice => existingDevice.ip === newDevice.ip)
             );
@@ -53,11 +52,14 @@ const Index = () => {
         }
       } catch (error) {
         console.error('Error fetching devices:', error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch network devices",
-          variant: "destructive",
-        });
+        // Don't show error toast for network errors as they're expected when backend is not available
+        if (error.message !== "Network Error") {
+          toast({
+            title: "Error",
+            description: "Failed to fetch network devices",
+            variant: "destructive",
+          });
+        }
       }
     };
 
