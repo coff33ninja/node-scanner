@@ -3,55 +3,52 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
-import { Scan } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { NetworkDevice, scanNetwork } from "@/utils/networkUtils";
 
-interface ScanResult {
-  name: string;
-  ip: string;
-  mac: string;
-  macVendor?: string;
-  netmask: string;
+interface NetworkScanDialogProps {
+  onDeviceAdd: (device: NetworkDevice) => void;
 }
 
-export const NetworkScanDialog = ({
-  onDeviceAdd,
-}: {
-  onDeviceAdd: (device: ScanResult) => void;
-}) => {
+export const NetworkScanDialog = ({ onDeviceAdd }: NetworkScanDialogProps) => {
   const [ipRange, setIpRange] = useState("192.168.1.0/24");
   const [isScanning, setIsScanning] = useState(false);
-  const [scanResults, setScanResults] = useState<ScanResult[]>([]);
+  const [scanResults, setScanResults] = useState<NetworkDevice[]>([]);
   const [includeUnknown, setIncludeUnknown] = useState(true);
   const { toast } = useToast();
 
   const handleScan = async () => {
     setIsScanning(true);
-    // Simulated scan results
-    setTimeout(() => {
-      setScanResults([
-        {
-          name: "ZYXEL",
-          ip: "192.168.1.1",
-          mac: "50:E0:39:0B:38:20",
-          macVendor: "Zyxel Communications",
-          netmask: "255.255.255.0",
-        },
-        {
-          name: "Unknown",
-          ip: "192.168.1.115",
-          mac: "40:B0:76:A4:1F:E3",
-          netmask: "255.255.255.0",
-        },
-      ]);
-      setIsScanning(false);
+    try {
+      const results = await scanNetwork({ 
+        ipRange,
+        timeout: 1000,
+        ports: [80, 443, 22, 21]
+      });
+      
+      // Transform scan results to match NetworkDevice type
+      const devices = results.map(device => ({
+        ...device,
+        status: 'online',
+        lastSeen: new Date().toLocaleString()
+      }));
+      
+      setScanResults(devices);
       toast({
         title: "Scan Complete",
-        description: "Network scan has completed.",
+        description: `Found ${devices.length} devices on your network.`,
       });
-    }, 2000);
+    } catch (error) {
+      console.error('Scan failed:', error);
+      toast({
+        title: "Scan Failed",
+        description: "Failed to scan network. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   const handleAddAll = () => {
@@ -97,7 +94,7 @@ export const NetworkScanDialog = ({
                     <div className="text-sm text-muted-foreground space-y-1">
                       <p>IP: {device.ip}</p>
                       <p>MAC: {device.mac}</p>
-                      {device.macVendor && <p>Vendor: {device.macVendor}</p>}
+                      {device.vendor && <p>Vendor: {device.vendor}</p>}
                     </div>
                   </div>
                   <Button
