@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { cn } from "../lib/utils"; // Updated to use the correct relative path
+import { Button } from "../components/ui/button"; // Updated to use the correct relative path
 import { Home, Users, Settings, Power } from "lucide-react";
 
 const Layout = ({ children }: { children: React.ReactNode }) => {

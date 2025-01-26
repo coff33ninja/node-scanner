@@ -1,11 +1,11 @@
-import Layout from "@/components/Layout";
-import { DeviceCard } from "@/components/DeviceCard";
-import { AddDeviceDialog } from "@/components/AddDeviceDialog";
-import { DeviceStats } from "@/components/DeviceStats";
+import Layout from "../components/Layout"; // Correct relative path
+import { DeviceCard } from "../components/DeviceCard"; // Correct relative path
+import { AddDeviceDialog } from "../components/AddDeviceDialog"; // Correct relative path
+import { DeviceStats } from "../components/DeviceStats"; // Correct relative path
 import { useEffect, useState } from "react";
-import { NetworkDevice } from "@/utils/networkUtils";
-import { useToast } from "@/components/ui/use-toast";
-
+import { NetworkDevice } from "../utils/networkUtils"; // Correct relative path
+import { useToast } from "../components/ui/use-toast"; // Correct relative path
+import axios from 'axios'; // Import axios for API calls
 const STORAGE_KEY = 'network-devices';
 
 const Index = () => {
@@ -28,6 +28,20 @@ const Index = () => {
         });
       }
     }
+  }, [toast]); // Added toast to the dependency array
+
+  // Fetch devices from the backend
+  useEffect(() => {
+    const fetchDevices = async () => {
+      try {
+        const response = await axios.get('/api/scan-network'); // Adjust the endpoint as necessary
+        setDevices(response.data);
+      } catch (error) {
+        console.error('Error fetching devices:', error);
+      }
+    };
+
+    fetchDevices();
   }, []);
 
   // Save devices to localStorage whenever they change
@@ -78,7 +92,7 @@ const Index = () => {
       <DeviceStats devices={devices} />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {devices.map((device) => (
+        {devices.map((device: NetworkDevice) => (
           <DeviceCard
             key={device.ip}
             name={device.name || `Device (${device.ip})`}

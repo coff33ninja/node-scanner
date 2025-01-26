@@ -89,6 +89,14 @@ export class NetworkScanner {
               
               // Try common ports
               const commonPorts = [80, 443, 22, 445, 139];
+              const openPorts = [];
+              const services = {
+                80: 'HTTP',
+                443: 'HTTPS',
+                22: 'SSH',
+                445: 'SMB',
+                139: 'NetBIOS',
+              };
               let isAnyPortOpen = false;
 
               for (const port of commonPorts) {
