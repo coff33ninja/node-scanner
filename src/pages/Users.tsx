@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,36 +7,17 @@ import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface UserData {
-  id: string;
-  username: string;
-  password: string;
-  email: string;
-  name: string;
-  role: 'admin' | 'user';
-  lastActive: string;
-}
-
-const UserProfile = () => {
+const Users = () => {
   const navigate = useNavigate();
-  const { register, login } = useAuth();
+  const { register, login, isFirstRun } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     password: '',
     email: '',
     name: '',
   });
-  const [isFirstRun, setIsFirstRun] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  useEffect(() => {
-    // Check if any users exist
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    if (users.length > 0) {
-      setIsFirstRun(false);
-    }
-  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -173,4 +154,4 @@ const UserProfile = () => {
   );
 };
 
-export default UserProfile;
+export default Users;

@@ -3,39 +3,43 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Key, Shield, Download, Upload, Save } from "lucide-react";
-import { useState, useRef } from "react";
+import { User, Key, Shield } from "lucide-react";
+import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const Account = () => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [importStatus, setImportStatus] = useState<string>('');
+  const { currentUser, updateProfile, changePassword, logout } = useAuth();
+  const navigate = useNavigate();
   
   // Profile state
-  const [profileName, setProfileName] = useState(() => {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user).name || 'John Doe' : 'John Doe';
-  });
-  const [profileEmail, setProfileEmail] = useState(() => {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user).email || 'john@example.com' : 'john@example.com';
-  });
+  const [profileName, setProfileName] = useState(currentUser?.name || '');
+  const [profileEmail, setProfileEmail] = useState(currentUser?.email || '');
+  const [profileStatus, setProfileStatus] = useState<string>('');
 
   // Password state
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [passwordStatus, setPasswordStatus] = useState<string>('');
-  const [profileStatus, setProfileStatus] = useState<string>('');
 
-  const handleSaveProfile = () => {
+  if (!currentUser) {
+    navigate('/login');
+    return null;
+  }
+
+  const handleSaveProfile = async () => {
     try {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const updatedUser = {
-        ...user,
+      const success = await updateProfile({
         name: profileName,
         email: profileEmail
-      };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      setProfileStatus('Profile updated successfully!');
+      });
+
+      if (success) {
+        setProfileStatus('Profile updated successfully!');
+      } else {
+        setProfileStatus('Error updating profile.');
+      }
+      
       setTimeout(() => setProfileStatus(''), 3000);
     } catch (error) {
       setProfileStatus('Error updating profile.');
@@ -43,36 +47,29 @@ const Account = () => {
     }
   };
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     try {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      
-      // Verify current password
-      if (user.password !== currentPassword) {
-        setPasswordStatus('Current password is incorrect');
-        setTimeout(() => setPasswordStatus(''), 3000);
+      if (!currentPassword || !newPassword) {
+        setPasswordStatus('Both passwords are required');
         return;
       }
 
-      // Update password
-      const updatedUser = {
-        ...user,
-        password: newPassword
-      };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      const success = await changePassword(currentPassword, newPassword);
       
-      // Clear password fields and show success message
-      setCurrentPassword('');
-      setNewPassword('');
-      setPasswordStatus('Password changed successfully!');
+      if (success) {
+        setCurrentPassword('');
+        setNewPassword('');
+        setPasswordStatus('Password changed successfully!');
+      } else {
+        setPasswordStatus('Current password is incorrect');
+      }
+      
       setTimeout(() => setPasswordStatus(''), 3000);
     } catch (error) {
       setPasswordStatus('Error changing password.');
       setTimeout(() => setPasswordStatus(''), 3000);
     }
   };
-
-  // ... existing export/import functions ...
 
   return (
     <Layout>
@@ -84,8 +81,6 @@ const Account = () => {
       </div>
 
       <div className="grid gap-6">
-        {/* Backup & Restore card ... */}
-
         <Card className="p-6">
           <div className="flex items-center space-x-4 mb-4">
             <User className="h-5 w-5" />
@@ -165,6 +160,17 @@ const Account = () => {
                 </p>
               </div>
               <Button variant="outline">Enable 2FA</Button>
+            </div>
+            <div className="pt-4 border-t">
+              <Button 
+                variant="destructive"
+                onClick={() => {
+                  logout();
+                  navigate('/login');
+                }}
+              >
+                Logout
+              </Button>
             </div>
           </div>
         </Card>

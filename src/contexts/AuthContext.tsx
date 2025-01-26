@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import bcryptjs from 'bcryptjs';
 
 interface User {
   id: string;
@@ -10,121 +11,138 @@ interface User {
 }
 
 interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
+  currentUser: User | null;
+  isFirstRun: boolean;
+  register: (data: { username: string; password: string; email: string; name: string; }) => Promise<boolean>;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
-  register: (userData: { username: string; password: string; email: string; name: string; }) => Promise<boolean>;
-  updateUser: (userData: Partial<User>) => void;
+  updateProfile: (data: { name?: string; email?: string; }) => Promise<boolean>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isFirstRun, setIsFirstRun] = useState<boolean>(true);
 
   useEffect(() => {
-    // Check for existing session
-    const storedUser = localStorage.getItem('currentUser');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
+    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
+    setIsFirstRun(users.length === 0);
+    
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      setCurrentUser(JSON.parse(savedUser));
     }
   }, []);
 
-  const login = async (username: string, password: string): Promise<boolean> => {
-    try {
-      // Get users from storage
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const user = users.find((u: any) => u.username === username && u.password === password);
-      
-      if (user) {
-        // Remove password from user object before storing in state
-        const { password: _, ...safeUser } = user;
-        setUser(safeUser as User);
-        setIsAuthenticated(true);
-        localStorage.setItem('currentUser', JSON.stringify(safeUser));
-        
-        // Update last active
-        const updatedUsers = users.map((u: any) => {
-          if (u.username === username) {
-            return { ...u, lastActive: new Date().toISOString() };
-          }
-          return u;
-        });
-        localStorage.setItem('users', JSON.stringify(updatedUsers));
-        
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('Login error:', error);
+  const register = async (data: { username: string; password: string; email: string; name: string; }) => {
+    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
+    
+    if (users.some((u: User) => u.username === data.username)) {
       return false;
     }
+
+    const hashedPassword = await bcryptjs.hash(data.password, 10);
+    
+    const newUser: User = {
+      id: crypto.randomUUID(),
+      username: data.username,
+      passwordHash: hashedPassword,
+      email: data.email,
+      name: data.name,
+      role: users.length === 0 ? 'admin' : 'user',
+      lastActive: new Date().toISOString()
+    };
+
+    users.push(newUser);
+    localStorage.setItem('users', JSON.stringify(users));
+
+    const { passwordHash, ...userWithoutPassword } = newUser;
+    setCurrentUser(userWithoutPassword);
+    localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+
+    return true;
+  };
+
+  const login = async (username: string, password: string) => {
+    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
+    const user = users.find((u: User) => u.username === username);
+
+    if (!user) return false;
+
+    const isValid = await bcryptjs.compare(password, user.passwordHash);
+    if (!isValid) return false;
+
+    user.lastActive = new Date().toISOString();
+    localStorage.setItem('users', JSON.stringify(users));
+
+    const { passwordHash, ...userWithoutPassword } = user;
+    setCurrentUser(userWithoutPassword);
+    localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+
+    return true;
   };
 
   const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
+    setCurrentUser(null);
     localStorage.removeItem('currentUser');
   };
 
-  const register = async (userData: { username: string; password: string; email: string; name: string; }): Promise<boolean> => {
-    try {
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      
-      // Check if username already exists
-      if (users.some((u: any) => u.username === userData.username)) {
-        return false;
-      }
+  const updateProfile = async (data: { name?: string; email?: string; }) => {
+    if (!currentUser) return false;
 
-      const newUser = {
-        id: crypto.randomUUID(),
-        ...userData,
-        role: users.length === 0 ? 'admin' as const : 'user' as const,
-        lastActive: new Date().toISOString(),
-      };
+    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
+    const userIndex = users.findIndex((u: User) => u.id === currentUser.id);
 
-      users.push(newUser);
-      localStorage.setItem('users', JSON.stringify(users));
+    if (userIndex === -1) return false;
 
-      // Auto login after registration
-      const { password: _, ...safeUser } = newUser;
-      setUser(safeUser as User);
-      setIsAuthenticated(true);
-      localStorage.setItem('currentUser', JSON.stringify(safeUser));
+    const updatedUser: User = {
+      ...users[userIndex],
+      ...data,
+      lastActive: new Date().toISOString()
+    };
 
-      return true;
-    } catch (error) {
-      console.error('Registration error:', error);
-      return false;
-    }
+    users[userIndex] = updatedUser;
+    localStorage.setItem('users', JSON.stringify(users));
+
+    const { passwordHash, ...userWithoutPassword } = updatedUser;
+    setCurrentUser(userWithoutPassword);
+    localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+
+    return true;
   };
 
-  const updateUser = (userData: Partial<User>) => {
-    if (!user) return;
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    if (!currentUser) return false;
 
-    const updatedUser = { ...user, ...userData };
-    setUser(updatedUser);
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
+    const user = users.find((u: User) => u.id === currentUser.id);
 
-    // Update user in users list
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const updatedUsers = users.map((u: any) => {
-      if (u.id === user.id) {
-        return { ...u, ...userData };
-      }
-      return u;
-    });
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
+    if (!user) return false;
+
+    const isValid = await bcryptjs.compare(currentPassword, user.passwordHash);
+    if (!isValid) return false;
+
+    const hashedNewPassword = await bcryptjs.hash(newPassword, 10);
+    user.passwordHash = hashedNewPassword;
+    user.lastActive = new Date().toISOString();
+
+    localStorage.setItem('users', JSON.stringify(users));
+    return true;
   };
 
-  return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout, register, updateUser }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const value = {
+    currentUser,
+    isFirstRun,
+    register,
+    login,
+    logout,
+    updateProfile,
+    changePassword
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
