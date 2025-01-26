@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Network, Bell, Shield, Database } from "lucide-react";
-import { Link } from 'react-router-dom';
 
 const Settings = () => {
   return (
@@ -32,17 +31,6 @@ const Settings = () => {
               <Switch id="auto-scan" />
               <Label htmlFor="auto-scan">Enable automatic network scanning</Label>
             </div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center space-x-4 mb-4">
-            <h2 className="text-xl font-semibold">User Profile</h2>
-          </div>
-          <div className="space-y-4">
-            <Link to="/user-profile">
-              <Button>Manage User Profile</Button>
-            </Link>
           </div>
         </Card>
 
