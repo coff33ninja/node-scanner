@@ -27,10 +27,10 @@ export const NetworkScanDialog = ({ onDeviceAdd }: NetworkScanDialogProps) => {
         ports: [80, 443, 22, 21]
       });
       
-      // Transform scan results to match NetworkDevice type
-      const devices = results.map(device => ({
+      // Transform scan results to match NetworkDevice type with correct status type
+      const devices: NetworkDevice[] = results.map(device => ({
         ...device,
-        status: 'online',
+        status: 'online' as const, // Explicitly set as 'online' literal type
         lastSeen: new Date().toLocaleString()
       }));
       
