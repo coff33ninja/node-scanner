@@ -1,11 +1,11 @@
-import Layout from "../components/Layout"; 
-import { DeviceCard } from "../components/DeviceCard"; 
-import { AddDeviceDialog } from "../components/AddDeviceDialog"; 
-import { DeviceStats } from "../components/DeviceStats"; 
+import Layout from "../components/Layout";
+import { DeviceCard } from "../components/DeviceCard";
+import { AddDeviceDialog } from "../components/AddDeviceDialog";
+import { DeviceStats } from "../components/DeviceStats";
 import { useEffect, useState } from "react";
-import { NetworkDevice } from "../utils/networkUtils"; 
-import { useToast } from "../components/ui/use-toast"; 
-import axios from 'axios'; 
+import { NetworkDevice } from "../utils/networkUtils";
+import { useToast } from "../components/ui/use-toast";
+import axios from 'axios';
 
 const STORAGE_KEY = 'network-devices';
 
@@ -20,8 +20,6 @@ const Index = () => {
         const parsedDevices = JSON.parse(storedDevices);
         if (Array.isArray(parsedDevices)) {
           setDevices(parsedDevices);
-        } else {
-          throw new Error("Parsed devices is not an array");
         }
       } catch (error) {
         console.error('Error parsing stored devices:', error);
@@ -41,22 +39,35 @@ const Index = () => {
         const response = await axios.get('/api/scan-network');
         console.log("Response status:", response.status);
         console.log("Response data:", response.data);
+        
         if (Array.isArray(response.data)) {
-          setDevices(response.data);
-          console.log("Devices fetched:", response.data);
+          setDevices(prevDevices => {
+            // Merge new devices with existing ones, avoiding duplicates
+            const newDevices = response.data.filter(newDevice => 
+              !prevDevices.some(existingDevice => existingDevice.ip === newDevice.ip)
+            );
+            return [...prevDevices, ...newDevices];
+          });
         } else {
-          throw new Error("Response data is not an array");
+          console.warn("API response is not an array:", response.data);
         }
       } catch (error) {
         console.error('Error fetching devices:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch network devices",
+          variant: "destructive",
+        });
       }
     };
 
     fetchDevices();
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
+    if (Array.isArray(devices)) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
+    }
   }, [devices]);
 
   const handleAddDevice = (device: NetworkDevice) => {
@@ -101,7 +112,7 @@ const Index = () => {
       <DeviceStats devices={devices} />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {devices.map((device: NetworkDevice) => (
+        {Array.isArray(devices) && devices.map((device: NetworkDevice) => (
           <DeviceCard
             key={device.ip}
             name={device.name || `Device (${device.ip})`}
