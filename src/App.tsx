@@ -10,8 +10,6 @@ import Account from "./pages/Account";
 import Users from "./pages/Users";
 import { useAuth } from "./contexts/AuthContext";
 
-const queryClient = new QueryClient();
-
 // Protected Route wrapper component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { currentUser } = useAuth();
@@ -21,13 +19,23 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Initialize QueryClient outside of component to prevent recreation
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
+    <BrowserRouter>
       <ThemeProvider>
         <TooltipProvider>
-          <AuthProvider>
-            <BrowserRouter>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
               <Routes>
                 <Route path="/account" element={<Account />} />
                 <Route
@@ -56,11 +64,11 @@ function App() {
                 />
                 <Route path="*" element={<Navigate to="/account" replace />} />
               </Routes>
-            </BrowserRouter>
-          </AuthProvider>
+            </AuthProvider>
+          </QueryClientProvider>
         </TooltipProvider>
       </ThemeProvider>
-    </QueryClientProvider>
+    </BrowserRouter>
   );
 }
 

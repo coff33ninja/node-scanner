@@ -1,13 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import bcryptjs from 'bcryptjs';
+import { databaseService, DBUser } from '../services/DatabaseService';
 
-interface User {
+export interface User {
   id: string;
   username: string;
   email: string;
   name: string;
   role: 'admin' | 'user';
   lastActive: string;
+  avatarUrl?: string;
+  passwordChanged?: boolean;
 }
 
 interface AuthContextType {
@@ -18,6 +21,8 @@ interface AuthContextType {
   logout: () => void;
   updateProfile: (data: { name?: string; email?: string; }) => Promise<boolean>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
+  deleteAccount: () => Promise<boolean>;
+  exportData: () => Promise<any | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,61 +32,97 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isFirstRun, setIsFirstRun] = useState<boolean>(true);
 
   useEffect(() => {
-    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
-    setIsFirstRun(users.length === 0);
+    const initDB = async () => {
+      await databaseService.init();
+      const users = await databaseService.getAllUsers();
+      setIsFirstRun(users.length === 0);
+      
+      // Add default admin account if no users exist
+      if (users.length === 0) {
+        const hashedPassword = await bcryptjs.hash('abc123', 10);
+        const defaultAdmin: DBUser = {
+          id: crypto.randomUUID(),
+          username: 'AltTab',
+          passwordHash: hashedPassword,
+          email: 'admin@upsnap.local',
+          name: 'Default Admin',
+          role: 'admin',
+          lastActive: new Date().toISOString(),
+          passwordChanged: false
+        };
+        await databaseService.addUser(defaultAdmin);
+      }
+
+      // Check for existing session
+      const savedUser = localStorage.getItem('currentUser');
+      if (savedUser) {
+        const user = JSON.parse(savedUser);
+        const dbUser = await databaseService.getUserByUsername(user.username);
+        if (dbUser) {
+          setCurrentUser(user);
+        } else {
+          localStorage.removeItem('currentUser');
+        }
+      }
+    };
     
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      setCurrentUser(JSON.parse(savedUser));
-    }
+    initDB();
   }, []);
 
   const register = async (data: { username: string; password: string; email: string; name: string; }) => {
-    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    if (users.some((u: User) => u.username === data.username)) {
+    try {
+      const hashedPassword = await bcryptjs.hash(data.password, 10);
+      
+      const newUser: DBUser = {
+        id: crypto.randomUUID(),
+        username: data.username,
+        passwordHash: hashedPassword,
+        email: data.email,
+        name: data.name,
+        role: isFirstRun ? 'admin' : 'user',
+        lastActive: new Date().toISOString(),
+        passwordChanged: true
+      };
+
+      const success = await databaseService.addUser(newUser);
+      if (success) {
+        const { passwordHash, ...userWithoutPassword } = newUser;
+        setCurrentUser(userWithoutPassword);
+        localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+        setIsFirstRun(false);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Registration error:', error);
       return false;
     }
-
-    const hashedPassword = await bcryptjs.hash(data.password, 10);
-    
-    const newUser: User & { passwordHash: string } = {
-      id: crypto.randomUUID(),
-      username: data.username,
-      passwordHash: hashedPassword,
-      email: data.email,
-      name: data.name,
-      role: users.length === 0 ? 'admin' : 'user',
-      lastActive: new Date().toISOString()
-    };
-
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
-
-    const { passwordHash, ...userWithoutPassword } = newUser;
-    setCurrentUser(userWithoutPassword);
-    localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
-
-    return true;
   };
 
   const login = async (username: string, password: string) => {
-    const users: (User & { passwordHash: string })[] = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find((u) => u.username === username);
+    try {
+      const user = await databaseService.getUserByUsername(username);
+      if (!user) return false;
 
-    if (!user) return false;
+      const isValid = await bcryptjs.compare(password, user.passwordHash);
+      if (!isValid) return false;
 
-    const isValid = await bcryptjs.compare(password, user.passwordHash);
-    if (!isValid) return false;
+      const updatedUser = {
+        ...user,
+        lastActive: new Date().toISOString()
+      };
+      
+      await databaseService.updateUser(updatedUser);
 
-    user.lastActive = new Date().toISOString();
-    localStorage.setItem('users', JSON.stringify(users));
+      const { passwordHash, ...userWithoutPassword } = updatedUser;
+      setCurrentUser(userWithoutPassword);
+      localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
 
-    const { passwordHash, ...userWithoutPassword } = user;
-    setCurrentUser(userWithoutPassword);
-    localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
-
-    return true;
+      return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    }
   };
 
   const logout = () => {
@@ -92,43 +133,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateProfile = async (data: { name?: string; email?: string; }) => {
     if (!currentUser) return false;
 
-    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
-    const userIndex = users.findIndex((u: User) => u.id === currentUser.id);
+    try {
+      const success = await databaseService.updateUser({
+        id: currentUser.id,
+        ...data,
+        lastActive: new Date().toISOString()
+      });
 
-    if (userIndex === -1) return false;
-
-    const updatedUser = {
-      ...users[userIndex],
-      ...data,
-      lastActive: new Date().toISOString()
-    };
-
-    users[userIndex] = updatedUser;
-    localStorage.setItem('users', JSON.stringify(users));
-
-    setCurrentUser(updatedUser);
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-
-    return true;
+      if (success) {
+        const updatedUser = { ...currentUser, ...data };
+        setCurrentUser(updatedUser);
+        localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Update profile error:', error);
+      return false;
+    }
   };
 
   const changePassword = async (currentPassword: string, newPassword: string) => {
     if (!currentUser) return false;
 
-    const users: (User & { passwordHash: string })[] = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find((u) => u.id === currentUser.id);
+    try {
+      const user = await databaseService.getUserByUsername(currentUser.username);
+      if (!user) return false;
 
-    if (!user) return false;
+      const isValid = await bcryptjs.compare(currentPassword, user.passwordHash);
+      if (!isValid) return false;
 
-    const isValid = await bcryptjs.compare(currentPassword, user.passwordHash);
-    if (!isValid) return false;
+      const hashedNewPassword = await bcryptjs.hash(newPassword, 10);
+      const success = await databaseService.updateUser({
+        id: currentUser.id,
+        passwordHash: hashedNewPassword,
+        lastActive: new Date().toISOString(),
+        passwordChanged: true
+      });
 
-    const hashedNewPassword = await bcryptjs.hash(newPassword, 10);
-    user.passwordHash = hashedNewPassword;
-    user.lastActive = new Date().toISOString();
+      return success;
+    } catch (error) {
+      console.error('Change password error:', error);
+      return false;
+    }
+  };
 
-    localStorage.setItem('users', JSON.stringify(users));
-    return true;
+  const deleteAccount = async () => {
+    if (!currentUser) return false;
+    const success = await databaseService.deleteUser(currentUser.id);
+    if (success) {
+      logout();
+      return true;
+    }
+    return false;
+  };
+
+  const exportData = async () => {
+    if (!currentUser) return null;
+    const userData = await databaseService.getUserData(currentUser.id);
+    const devices = await databaseService.getUserDevices(currentUser.id);
+    return {
+      userData,
+      devices
+    };
   };
 
   const value = {
@@ -138,7 +205,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     logout,
     updateProfile,
-    changePassword
+    changePassword,
+    deleteAccount,
+    exportData
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

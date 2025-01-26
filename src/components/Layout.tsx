@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
-import { cn } from "../lib/utils"; // Updated to use the correct relative path
-import { Button } from "../components/ui/button"; // Updated to use the correct relative path
+import { cn } from "../lib/utils";
+import { Button } from "../components/ui/button";
 import { Home, Users, Settings, Power } from "lucide-react";
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -16,8 +16,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     <div className="min-h-screen bg-background">
       <div className="flex">
         {/* Sidebar */}
-        <div className="fixed inset-y-0 z-50 flex w-72 flex-col">
-          <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-card px-6 pb-4 ring-1 ring-border/5">
+        <div className="fixed left-0 top-0 bottom-0 w-72">
+          <div className="flex h-full flex-col gap-y-5 overflow-y-auto bg-card px-6 pb-4 ring-1 ring-border/5">
             <div className="flex h-16 shrink-0 items-center">
               <img
                 className="h-8 w-auto"
@@ -71,8 +71,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         </div>
 
         {/* Main content */}
-        <main className="pl-72 w-full">
-          <div className="px-8 py-6">{children}</div>
+        <main className="flex-1 ml-72">
+          <div className="p-8">{children}</div>
         </main>
       </div>
     </div>
