@@ -113,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+
   const changePassword = async (currentPassword: string, newPassword: string) => {
     if (!currentUser) return false;
 
