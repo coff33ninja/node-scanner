@@ -3,9 +3,77 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Key, Shield } from "lucide-react";
+import { User, Key, Shield, Download, Upload, Save } from "lucide-react";
+import { useState, useRef } from "react";
 
 const Account = () => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importStatus, setImportStatus] = useState<string>('');
+  
+  // Profile state
+  const [profileName, setProfileName] = useState(() => {
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user).name || 'John Doe' : 'John Doe';
+  });
+  const [profileEmail, setProfileEmail] = useState(() => {
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user).email || 'john@example.com' : 'john@example.com';
+  });
+
+  // Password state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordStatus, setPasswordStatus] = useState<string>('');
+  const [profileStatus, setProfileStatus] = useState<string>('');
+
+  const handleSaveProfile = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const updatedUser = {
+        ...user,
+        name: profileName,
+        email: profileEmail
+      };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setProfileStatus('Profile updated successfully!');
+      setTimeout(() => setProfileStatus(''), 3000);
+    } catch (error) {
+      setProfileStatus('Error updating profile.');
+      setTimeout(() => setProfileStatus(''), 3000);
+    }
+  };
+
+  const handleChangePassword = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      
+      // Verify current password
+      if (user.password !== currentPassword) {
+        setPasswordStatus('Current password is incorrect');
+        setTimeout(() => setPasswordStatus(''), 3000);
+        return;
+      }
+
+      // Update password
+      const updatedUser = {
+        ...user,
+        password: newPassword
+      };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // Clear password fields and show success message
+      setCurrentPassword('');
+      setNewPassword('');
+      setPasswordStatus('Password changed successfully!');
+      setTimeout(() => setPasswordStatus(''), 3000);
+    } catch (error) {
+      setPasswordStatus('Error changing password.');
+      setTimeout(() => setPasswordStatus(''), 3000);
+    }
+  };
+
+  // ... existing export/import functions ...
+
   return (
     <Layout>
       <div className="mb-8">
@@ -16,6 +84,8 @@ const Account = () => {
       </div>
 
       <div className="grid gap-6">
+        {/* Backup & Restore card ... */}
+
         <Card className="p-6">
           <div className="flex items-center space-x-4 mb-4">
             <User className="h-5 w-5" />
@@ -24,13 +94,27 @@ const Account = () => {
           <div className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input id="name" defaultValue="John Doe" />
+              <Input 
+                id="name" 
+                value={profileName}
+                onChange={(e) => setProfileName(e.target.value)}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue="john@example.com" />
+              <Input 
+                id="email" 
+                type="email" 
+                value={profileEmail}
+                onChange={(e) => setProfileEmail(e.target.value)}
+              />
             </div>
-            <Button>Update Profile</Button>
+            <Button onClick={handleSaveProfile}>Update Profile</Button>
+            {profileStatus && (
+              <p className={`text-sm ${profileStatus.includes('Error') ? 'text-red-500' : 'text-green-500'}`}>
+                {profileStatus}
+              </p>
+            )}
           </div>
         </Card>
 
@@ -42,13 +126,28 @@ const Account = () => {
           <div className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="current-password">Current Password</Label>
-              <Input id="current-password" type="password" />
+              <Input 
+                id="current-password" 
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="new-password">New Password</Label>
-              <Input id="new-password" type="password" />
+              <Input 
+                id="new-password" 
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
             </div>
-            <Button>Change Password</Button>
+            <Button onClick={handleChangePassword}>Change Password</Button>
+            {passwordStatus && (
+              <p className={`text-sm ${passwordStatus.includes('Error') || passwordStatus.includes('incorrect') ? 'text-red-500' : 'text-green-500'}`}>
+                {passwordStatus}
+              </p>
+            )}
           </div>
         </Card>
 
