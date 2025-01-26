@@ -42,7 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (user) {
         // Remove password from user object before storing in state
         const { password: _, ...safeUser } = user;
-        setUser(safeUser);
+        setUser(safeUser as User);
         setIsAuthenticated(true);
         localStorage.setItem('currentUser', JSON.stringify(safeUser));
         
@@ -82,7 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const newUser = {
         id: crypto.randomUUID(),
         ...userData,
-        role: users.length === 0 ? 'admin' : 'user', // First user is admin
+        role: users.length === 0 ? 'admin' as const : 'user' as const,
         lastActive: new Date().toISOString(),
       };
 
@@ -91,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Auto login after registration
       const { password: _, ...safeUser } = newUser;
-      setUser(safeUser);
+      setUser(safeUser as User);
       setIsAuthenticated(true);
       localStorage.setItem('currentUser', JSON.stringify(safeUser));
 
