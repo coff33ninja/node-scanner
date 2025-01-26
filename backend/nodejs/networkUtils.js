@@ -151,7 +151,7 @@ export class NetworkScanner {
       await Promise.all(scanPromises);
 
       // Call the Python scanner for devices not detected
-      const pythonScanCommand = `python3 backend/python/network_utils.py ${ipRange}`;
+      const pythonScanCommand = `python backend/python/network_utils.py ${ipRange}`;
       exec(pythonScanCommand, (error, stdout, stderr) => {
         if (error) {
           console.error(`Error executing Python scanner: ${error}`);
