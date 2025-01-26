@@ -33,9 +33,11 @@ const Index = () => {
   // Fetch devices from the backend
   useEffect(() => {
     const fetchDevices = async () => {
+      console.log("Fetching devices from API...");
       try {
         const response = await axios.get('/api/scan-network'); // Adjust the endpoint as necessary
         setDevices(response.data);
+        console.log("Devices fetched:", response.data); // Log the response data
       } catch (error) {
         console.error('Error fetching devices:', error);
       }
