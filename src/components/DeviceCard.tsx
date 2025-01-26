@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Card } from "@/components/ui/card"; 
-import { Button } from "components/ui/button"; 
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Power, Settings, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils"; 
-import { useToast } from "components/ui/use-toast"; 
+import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/use-toast";
 import { DeviceSettingsDialog } from "./DeviceSettingsDialog";
 
 interface DeviceCardProps {
@@ -12,7 +12,7 @@ interface DeviceCardProps {
   mac: string;
   status: "online" | "offline";
   lastSeen: string;
-  openPorts: number[]; 
+  openPorts: number[];
   onDelete?: () => void;
 }
 
@@ -22,7 +22,7 @@ export const DeviceCard = ({
   mac,
   status,
   lastSeen,
-  openPorts, 
+  openPorts,
   onDelete,
 }: DeviceCardProps) => {
   const [isLoading, setIsLoading] = useState(false);
