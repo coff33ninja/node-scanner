@@ -12,7 +12,7 @@ interface DeviceCardProps {
   mac: string;
   status: "online" | "offline";
   lastSeen: string;
-  openPorts: number[];
+  openPorts?: number[];  // Made optional with ?
   onDelete?: () => void;
 }
 
@@ -22,7 +22,7 @@ export const DeviceCard = ({
   mac,
   status,
   lastSeen,
-  openPorts,
+  openPorts = [],  // Added default value
   onDelete,
 }: DeviceCardProps) => {
   const [isLoading, setIsLoading] = useState(false);
