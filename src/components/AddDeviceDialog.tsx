@@ -2,13 +2,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Scan } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { NetworkScanDialog } from "./NetworkScanDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { NetworkDevice } from "@/utils/networkUtils";
 
-export const AddDeviceDialog = () => {
+interface AddDeviceDialogProps {
+  onDeviceAdd: (device: NetworkDevice) => void;
+}
+
+export const AddDeviceDialog = ({ onDeviceAdd }: AddDeviceDialogProps) => {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const [formData, setFormData] = useState({
@@ -19,6 +24,12 @@ export const AddDeviceDialog = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const newDevice: NetworkDevice = {
+      ...formData,
+      status: 'online',
+      lastSeen: new Date().toLocaleString()
+    };
+    onDeviceAdd(newDevice);
     toast({
       title: "Device Added",
       description: `${formData.name} has been added to your devices.`,
@@ -27,7 +38,8 @@ export const AddDeviceDialog = () => {
     setFormData({ name: "", ip: "", mac: "" });
   };
 
-  const handleScanDeviceAdd = (device: any) => {
+  const handleScanDeviceAdd = (device: NetworkDevice) => {
+    onDeviceAdd(device);
     toast({
       title: "Device Added",
       description: `${device.name} has been added to your devices.`,
