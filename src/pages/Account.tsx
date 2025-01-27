@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Key, Shield, LogIn } from "lucide-react";
+import { User, Key, Shield, LogIn, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -76,9 +76,22 @@ const Account = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md p-8">
-          <h1 className="text-3xl font-bold mb-8 text-center">
-            {isFirstRun ? 'Create Admin Account' : (isRegistering ? 'Create Account' : 'Login')}
-          </h1>
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold">
+              {isRegistering ? 'Create Account' : 'Login'}
+            </h1>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsRegistering(!isRegistering);
+                setAuthError('');
+                setLoginData({ username: '', password: '', email: '', name: '' });
+              }}
+            >
+              <LogIn className="mr-2 h-4 w-4" />
+              {isRegistering ? 'Switch to Login' : 'Switch to Register'}
+            </Button>
+          </div>
 
           {authError && (
             <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-md">
@@ -91,42 +104,63 @@ const Account = () => {
             </div>
           )}
 
-          <div className="space-y-4">
-            <div>
+          <form onSubmit={(e) => { e.preventDefault(); handleAuthSubmit(); }} className="space-y-4">
+            <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input
                 id="username"
+                name="username"
+                placeholder="Enter your username"
                 value={loginData.username}
                 onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={loginData.password}
-                onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={loginData.password}
+                  onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-gray-500" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-500" />
+                  )}
+                </button>
+              </div>
             </div>
 
-            {(isRegistering || isFirstRun) && (
+            {isRegistering && (
               <>
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
+                    name="email"
                     type="email"
+                    placeholder="Enter your email"
                     value={loginData.email}
                     onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                   />
                 </div>
 
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
                   <Input
                     id="name"
+                    name="name"
+                    placeholder="Enter your full name"
                     value={loginData.name}
                     onChange={(e) => setLoginData({ ...loginData, name: e.target.value })}
                   />
@@ -134,30 +168,15 @@ const Account = () => {
               </>
             )}
 
-            <Button className="w-full" onClick={handleAuthSubmit}>
-              {isFirstRun ? 'Create Admin Account' : (isRegistering ? 'Register' : 'Login')}
+            <Button type="submit" className="w-full">
+              {isRegistering ? 'Create Account' : 'Login'}
             </Button>
-
-            {!isFirstRun && (
-              <button
-                type="button"
-                onClick={() => {
-                  setIsRegistering(!isRegistering);
-                  setAuthError('');
-                  setLoginData({ username: '', password: '', email: '', name: '' });
-                }}
-                className="text-primary hover:underline w-full text-center mt-4"
-              >
-                {isRegistering ? 'Already have an account? Login' : "Don't have an account? Register"}
-              </button>
-            )}
-          </div>
+          </form>
         </Card>
       </div>
     );
   }
 
-  // Profile management UI for logged-in users
   return (
     <Layout>
       <div className="mb-8">
