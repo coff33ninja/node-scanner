@@ -86,7 +86,7 @@ npm install
 # Start Node.js backend (from backend/nodejs directory)
 npm run dev
 
-# The server will start on http://localhost:5000
+# The server will start on http://localhost:3000
 ```
 
 ### 2. Start the Frontend Development Server
@@ -95,7 +95,7 @@ npm run dev
 # From project root
 npm run dev
 
-# The frontend will start on http://localhost:3000
+# The frontend will start on http://localhost:3001
 ```
 
 ## Features
