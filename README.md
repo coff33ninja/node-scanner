@@ -1,122 +1,133 @@
-# Wake-on-LAN Web Interface
+# WOL (Wake-on-LAN) Project
 
-A modern web interface for managing Wake-on-LAN devices, built with React, TypeScript, and Tailwind CSS. This application allows you to remotely wake up computers on your network using the Wake-on-LAN protocol.
+A web application for managing and waking devices on your network using Wake-on-LAN functionality.
 
-## 🚧 Project Status: Early Development
+## Prerequisites
 
-This project consists of two main parts:
-- Frontend: React + TypeScript application with Shadcn/UI components
-- Backend: Node.js + Express + TypeScript server
+Before running the project, make sure you have the following installed:
 
-## Features
+- Node.js (v16 or higher)
+- MongoDB Community Server
+- Git
 
-### Currently Implemented
-- Modern UI with Shadcn/UI components
-- Dark/Light theme support
-- Basic routing setup
-- Authentication foundation
+## Installation
 
-### Coming Soon
-- User authentication and authorization
-- Device management
-  - Add/Remove devices
-  - Wake-on-LAN functionality
-  - Device status monitoring
-- Network scanning
-- Device statistics
-- Profile management
+### 1. Clone the Repository
 
-## Tech Stack
-
-### Frontend
-- React 18 with TypeScript
-- Vite for build tooling
-- Tailwind CSS for styling
-- Shadcn/ui Components
-- React Router v6
-- React Query for data fetching
-- React Hook Form for form handling
-- Zod for validation
-
-### Backend
-- Node.js with TypeScript
-- Express.js
-- MongoDB with Mongoose
-- JWT authentication
-- Winston for logging
-- Express-validator and Zod for validation
-
-## Getting Started
-
-### Prerequisites
-- Node.js 18 or higher
-- npm or yarn
-- MongoDB (for backend)
-
-### Development Setup
-
-1. Clone the repository:
 ```bash
 git clone https://github.com/yourusername/wol.git
 cd wol
 ```
 
-2. Frontend Setup:
-```bash
-# Install dependencies
-npm install
+### 2. Set Up MongoDB
 
-# Start development server
-npm run dev
-```
+1. Download and install MongoDB Community Server from [MongoDB Download Center](https://www.mongodb.com/try/download/community)
+2. Make sure the MongoDB service is running:
+   - On Windows: Check Services (services.msc) for "MongoDB"
+   - On Linux: `sudo systemctl status mongodb`
 
-3. Backend Setup:
+### 3. Backend Setup
+
 ```bash
 cd backend/nodejs
 npm install
+```
+
+Create a `.env` file in the `backend/nodejs` directory:
+
+```env
+# Server Configuration
+PORT=5000
+NODE_ENV=development
+
+# MongoDB Configuration
+MONGODB_URI=mongodb://localhost:27017/wol
+
+# JWT Configuration
+JWT_SECRET=your_jwt_secret_key_here
+JWT_REFRESH_SECRET=your_jwt_refresh_secret_key_here
+JWT_EXPIRES_IN=1h
+JWT_REFRESH_EXPIRES_IN=7d
+
+# Security
+CORS_ORIGIN=http://localhost:5173
+```
+
+Start the backend server:
+
+```bash
+npx ts-node -r tsconfig-paths/register src/server.ts
+```
+
+The backend should now be running on `http://localhost:5000`
+
+### 4. Frontend Setup
+
+In a new terminal:
+
+```bash
+cd frontend  # or the root directory if frontend is there
+npm install
 npm run dev
 ```
 
-## Known Issues and Limitations
+The frontend should now be running on `http://localhost:5173`
 
-1. Authentication:
-   - Login flow needs implementation
-   - Session management to be added
-   - Protected routes to be implemented
+## Usage
 
-2. UI/UX:
-   - Theme persistence needs implementation
-   - Responsive design improvements needed
-   - Loading states to be added
+### 1. Registration
 
-3. Development:
-   - Path aliases configuration needs fixing
-   - Environment variables setup required
-   - API integration pending
+1. Open `http://localhost:5173` in your browser
+2. Click on the Register link
+3. Fill in the registration form:
+   - Username (3-20 characters, letters, numbers, underscores, hyphens)
+   - Strong password
+   - Valid email address
+   - Full name
+   - Accept terms and conditions
+4. Submit the form
 
-## Contributing
+### 2. Login
 
-This project is currently in active development. While contributions are welcome, please note that the codebase is subject to significant changes. If you'd like to contribute:
+1. Go to the login page
+2. Enter your username and password
+3. Optionally check "Remember me" to stay logged in
+4. Click Login
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Open a Pull Request
+### 3. Account Security
 
-## Security
+- After 5 failed login attempts, your account will be temporarily locked for 15 minutes
+- Use a strong password that includes:
+  - At least 8 characters
+  - Mix of uppercase and lowercase letters
+  - Numbers
+  - Special characters
 
-This project implements several security measures:
-- CORS protection
-- Rate limiting
-- Helmet for HTTP headers
-- JWT for authentication
-- Password hashing with bcrypt
+## Troubleshooting
 
-## License
+### Backend Issues
 
-MIT
+1. **MongoDB Connection Failed**
+   - Verify MongoDB is running
+   - Check MongoDB connection string in `.env`
+   - Ensure MongoDB port (27017) is not blocked
 
-## Contact
+2. **Port Already in Use**
+   - Change the PORT in `.env`
+   - Check if another service is using port 5000
 
-If you have any questions or suggestions, please open an issue in the GitHub repository.
+### Frontend Issues
+
+1. **Login/Register Not Working**
+   - Verify backend is running
+   - Check browser console for errors
+   - Ensure CORS_ORIGIN in backend `.env` matches frontend URL
+
+2. **Network Errors**
+   - Check if backend URL is correct
+   - Verify network connectivity
+   - Check browser console for CORS errors
+
+## Development
+
+### Backend Structure

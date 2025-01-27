@@ -1,10 +1,5 @@
 import { Request, Response } from 'express';
-import { User, IUser } from '../models/User';
-
-// Extend the Express Request type to include the authenticated user
-interface AuthenticatedRequest extends Request {
-  user?: IUser;
-}
+import { User } from '@/models/User';
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
@@ -16,13 +11,9 @@ export const getAllUsers = async (req: Request, res: Response) => {
   }
 };
 
-export const getUserProfile = async (req: AuthenticatedRequest, res: Response) => {
+export const getUserProfile = async (req: Request, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ error: 'User not authenticated' });
-    }
-
-    const user = await User.findById(req.user._id).select('-password');
+    const user = await User.findById(req.user?.id).select('-password');
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -33,14 +24,10 @@ export const getUserProfile = async (req: AuthenticatedRequest, res: Response) =
   }
 };
 
-export const updateUserProfile = async (req: AuthenticatedRequest, res: Response) => {
+export const updateUserProfile = async (req: Request, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ error: 'User not authenticated' });
-    }
-
     const { name, email, avatarUrl } = req.body;
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user?.id);
     
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -52,7 +39,7 @@ export const updateUserProfile = async (req: AuthenticatedRequest, res: Response
 
     await user.save();
     
-    const updatedUser = await User.findById(user._id).select('-password');
+    const updatedUser = await User.findById(user.id).select('-password');
     res.json(updatedUser);
   } catch (error) {
     console.error('Error updating user profile:', error);

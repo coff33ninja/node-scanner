@@ -5,77 +5,76 @@ import QRCode from 'qrcode';
 import { User } from '../models/User';
 import { logger } from '../utils/logger';
 import { validateRegistration, validateLogin } from '../validators/auth.validator';
-import { validationResult } from 'express-validator';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key';
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { username, password, email, name } = req.body;
+    // Validate input
+    const validationResult = validateRegistration(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({ errors: validationResult.errors });
+    }
 
-    // Create a new user with admin role for testing
+    const { username, email, password, name } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({
+      $or: [{ username }, { email }]
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        message: 'Username or email already exists'
+      });
+    }
+
+    // Create new user
     const user = new User({
       username,
-      password,
       email,
-      name,
-      role: 'admin',
-      lastActive: new Date(),
-      passwordChanged: false,
-      preferences: {
-        theme: 'system',
-        notifications: true,
-        language: 'en'
-      }
+      password,
+      name
     });
 
     await user.save();
 
-    // Generate tokens with longer expiration
-    const token = jwt.sign({ id: user._id.toString() }, JWT_SECRET, {
-      expiresIn: '30d' // Extended to 30 days
-    });
+    // Generate tokens
+    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '1h' });
+    const refreshToken = jwt.sign({ id: user._id }, JWT_REFRESH_SECRET, { expiresIn: '7d' });
 
-    const refreshToken = jwt.sign({ id: user._id.toString() }, JWT_REFRESH_SECRET, {
-      expiresIn: '60d' // Extended to 60 days
+    // Save refresh token
+    user.refreshTokens.push({
+      token: refreshToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
     });
-
-    // Update last active timestamp
-    user.lastActive = new Date();
     await user.save();
 
-    // Return user data and tokens - same response format as login
+    // Return user data and tokens
     res.status(201).json({
-      success: true,
-      token,
-      refreshToken,
       user: {
         id: user._id,
         username: user.username,
         email: user.email,
         name: user.name,
-        role: user.role,
-        lastActive: user.lastActive,
-        avatarUrl: user.avatarUrl,
-        preferences: user.preferences,
-        passwordChanged: user.passwordChanged
-      }
+        role: user.role
+      },
+      token,
+      refreshToken
     });
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ message: 'Error registering user' });
+    logger.error('Registration error:', error);
+    res.status(500).json({ message: 'Registration failed' });
   }
 };
 
 export const login = async (req: Request, res: Response) => {
   try {
     // Validate input
-    await Promise.all(validateLogin.map(validation => validation.run(req)));
-    const errors = validationResult(req);
-
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors });
+    const validationResult = validateLogin(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({ errors: validationResult.errors });
     }
 
     const { username, password } = req.body;
@@ -113,8 +112,8 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Generate tokens
-    const token = jwt.sign({ id: user._id.toString() }, JWT_SECRET, { expiresIn: '1h' });
-    const refreshToken = jwt.sign({ id: user._id.toString() }, JWT_REFRESH_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '1h' });
+    const refreshToken = jwt.sign({ id: user._id }, JWT_REFRESH_SECRET, { expiresIn: '7d' });
 
     // Save refresh token
     user.refreshTokens.push({
@@ -148,7 +147,7 @@ export const login = async (req: Request, res: Response) => {
 
 export const enableTwoFactor = async (req: Request, res: Response) => {
   try {
-    const userId = (req.user as { id: string }).id; // Specifying type
+    const userId = (req.user as any).id;
     const user = await User.findById(userId);
 
     if (!user) {
@@ -177,6 +176,8 @@ export const enableTwoFactor = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Failed to enable 2FA' });
   }
 };
+
+// ... (previous code remains the same until verifyTwoFactor) ...
 
 export const verifyTwoFactor = async (req: Request, res: Response) => {
   try {
@@ -222,7 +223,7 @@ export const verifyTwoFactor = async (req: Request, res: Response) => {
 
 export const disableTwoFactor = async (req: Request, res: Response) => {
   try {
-    const userId = (req.user as { id: string }).id; // Specifying type
+    const userId = (req.user as any).id;
     const { currentPassword } = req.body;
 
     const user = await User.findById(userId);
@@ -263,7 +264,7 @@ export const refreshToken = async (req: Request, res: Response) => {
     }
 
     // Check if refresh token exists and is valid
-    const tokenDoc = user.refreshTokens.find((t: { token: unknown; }) => t.token === refreshToken);
+    const tokenDoc = user.refreshTokens.find(t => t.token === refreshToken);
     if (!tokenDoc || tokenDoc.expiresAt < new Date()) {
       return res.status(401).json({ message: 'Invalid or expired refresh token' });
     }
@@ -273,7 +274,7 @@ export const refreshToken = async (req: Request, res: Response) => {
     const newRefreshToken = jwt.sign({ id: user._id }, JWT_REFRESH_SECRET, { expiresIn: '7d' });
 
     // Remove old refresh token and add new one
-    user.refreshTokens = user.refreshTokens.filter((t: { token: never; }) => t.token !== refreshToken);
+    user.refreshTokens = user.refreshTokens.filter(t => t.token !== refreshToken);
     user.refreshTokens.push({
       token: newRefreshToken,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
@@ -292,7 +293,7 @@ export const refreshToken = async (req: Request, res: Response) => {
 
 export const logout = async (req: Request, res: Response) => {
   try {
-    const userId = (req.user as { id: string }).id; // Specifying type
+    const userId = (req.user as any).id;
     const refreshToken = req.body.refreshToken;
 
     const user = await User.findById(userId);
@@ -302,7 +303,7 @@ export const logout = async (req: Request, res: Response) => {
 
     // Remove refresh token
     if (refreshToken) {
-      user.refreshTokens = user.refreshTokens.filter((t: { token: never; }) => t.token !== refreshToken);
+      user.refreshTokens = user.refreshTokens.filter(t => t.token !== refreshToken);
       await user.save();
     }
 
@@ -315,7 +316,7 @@ export const logout = async (req: Request, res: Response) => {
 
 export const validateSession = async (req: Request, res: Response) => {
   try {
-    const userId = (req.user as { id: string }).id; // Specifying type
+    const userId = (req.user as any).id;
     const user = await User.findById(userId);
 
     if (!user) {

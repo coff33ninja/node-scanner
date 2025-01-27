@@ -61,138 +61,24 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Constants for authentication
+const TOKEN_KEY = 'auth_token';
+const REFRESH_TOKEN_KEY = 'refresh_token';
+const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  console.log('[AuthProvider] Initializing AuthProvider');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isFirstRun, setIsFirstRun] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sessionTimer, setSessionTimer] = useState<NodeJS.Timeout | null>(null);
 
-  // Register implementation
-  const register = async (data: {
-    username: string;
-    password: string;
-    email: string;
-    name: string;
-    language?: string;
-  }): Promise<boolean> => {
-    console.log('[AuthProvider] Attempting registration');
-    try {
-      const response = await fetch(API_ENDPOINTS.REGISTER, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error('Registration failed');
-      }
-
-      const result = await response.json();
-      if (result.token) {
-        localStorage.setItem('auth_token', result.token);
-        setCurrentUser(result.user);
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('[AuthProvider] Registration error:', error);
-      setError('Registration failed');
-      return false;
-    }
-  };
-
-  // Login implementation
-  const login = async (
-    username: string,
-    password: string,
-    remember: boolean = false
-  ): Promise<boolean> => {
-    console.log('[AuthProvider] Attempting login');
-    try {
-      const response = await fetch(API_ENDPOINTS.LOGIN, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Login failed');
-      }
-
-      const result = await response.json();
-      if (result.token) {
-        const storage = remember ? localStorage : sessionStorage;
-        storage.setItem('auth_token', result.token);
-        setCurrentUser(result.user);
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('[AuthProvider] Login error:', error);
-      setError('Login failed');
-      return false;
-    }
-  };
-
-  // Logout implementation
-  const logout = async (): Promise<void> => {
-    console.log('[AuthProvider] Logging out');
-    localStorage.removeItem('auth_token');
-    sessionStorage.removeItem('auth_token');
-    setCurrentUser(null);
-  };
-
-  // Session validation
-  const validateSession = async (): Promise<boolean> => {
-    console.log('[AuthProvider] Validating session');
-    try {
-      const response = await fetch(API_ENDPOINTS.VALIDATE_SESSION, {
-        headers: getAuthHeaders(),
-      });
-      return response.ok;
-    } catch (error) {
-      console.error('[AuthProvider] Session validation error:', error);
-      return false;
-    }
-  };
-
-  // Token refresh
-  const refreshToken = async (): Promise<boolean> => {
-    console.log('[AuthProvider] Refreshing token');
-    try {
-      const response = await fetch(API_ENDPOINTS.REFRESH_TOKEN, {
-        headers: getAuthHeaders(),
-      });
-      if (response.ok) {
-        const { token } = await response.json();
-        localStorage.setItem('auth_token', token);
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('[AuthProvider] Token refresh error:', error);
-      return false;
-    }
-  };
-
-  // Initial auth check effect
   useEffect(() => {
-    console.log('[AuthProvider] Running initial auth check');
     const initAuth = async () => {
       try {
-        const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-        console.log('[AuthProvider] Found token:', !!token);
-        
+        const token = localStorage.getItem(TOKEN_KEY);
         if (token) {
           const isValid = await validateSession();
-          console.log('[AuthProvider] Token validation result:', isValid);
-          
           if (isValid) {
             await refreshToken();
             const response = await fetch(API_ENDPOINTS.VALIDATE_SESSION, {
@@ -200,19 +86,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
             if (response.ok) {
               const userData = await response.json();
-              console.log('[AuthProvider] User data retrieved successfully');
               setCurrentUser(userData.user);
             }
           } else {
-            console.log('[AuthProvider] Invalid session, logging out');
             await logout();
           }
         }
       } catch (error) {
-        console.error('[AuthProvider] Auth initialization error:', error);
+        console.error('Auth initialization error:', error);
         setError('Failed to initialize authentication');
       } finally {
-        console.log('[AuthProvider] Auth initialization complete');
         setIsLoading(false);
         setIsFirstRun(false);
       }
@@ -221,22 +104,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, []);
 
-  // Session timer effect
   useEffect(() => {
-    console.log('[AuthProvider] Session timer effect running', {
-      hasUser: !!currentUser,
-      userRole: currentUser?.role
-    });
-
-    if (currentUser && currentUser.role !== 'admin') {
+    if (currentUser) {
       const resetTimer = () => {
         if (sessionTimer) {
           clearTimeout(sessionTimer);
         }
         const timer = setTimeout(() => {
-          console.log('[AuthProvider] Session timeout, logging out');
           logout();
-        }, 30 * 60 * 1000); // 30 minutes
+        }, SESSION_TIMEOUT);
         setSessionTimer(timer);
       };
 
@@ -246,7 +122,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       resetTimer();
 
       return () => {
-        console.log('[AuthProvider] Cleaning up session timer');
         window.removeEventListener('mousemove', resetTimer);
         window.removeEventListener('keypress', resetTimer);
         if (sessionTimer) {
@@ -256,14 +131,136 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [currentUser, sessionTimer]);
 
-  // Stub implementations for other methods
-  const updateProfile = async () => false;
-  const changePassword = async () => false;
-  const enableTwoFactor = async () => ({ success: false });
-  const disableTwoFactor = async () => false;
-  const verifyTwoFactor = async () => false;
-  const deleteAccount = async () => false;
-  const exportData = async () => null;
+  const register = async (data: {
+    username: string;
+    password: string;
+    email: string;
+    name: string;
+    language?: string;
+  }): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(API_ENDPOINTS.REGISTER, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Registration failed');
+      }
+
+      const { token, refreshToken, user } = await response.json();
+      localStorage.setItem(TOKEN_KEY, token);
+      localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+      setCurrentUser(user);
+      return true;
+    } catch (error) {
+      console.error('Registration error:', error);
+      setError('Registration failed');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const login = async (
+    username: string,
+    password: string,
+    remember: boolean = false
+  ): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(API_ENDPOINTS.LOGIN, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Login failed');
+      }
+
+      const { token, refreshToken, user } = await response.json();
+      if (remember) {
+        localStorage.setItem(TOKEN_KEY, token);
+        localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+      } else {
+        sessionStorage.setItem(TOKEN_KEY, token);
+        sessionStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+      }
+      setCurrentUser(user);
+      return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('Login failed');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = async (): Promise<void> => {
+    try {
+      await fetch(API_ENDPOINTS.LOGOUT, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+      sessionStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+      setCurrentUser(null);
+      if (sessionTimer) {
+        clearTimeout(sessionTimer);
+      }
+    }
+  };
+
+  const validateSession = async (): Promise<boolean> => {
+    try {
+      const response = await fetch(API_ENDPOINTS.VALIDATE_SESSION, {
+        headers: getAuthHeaders(),
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Session validation error:', error);
+      return false;
+    }
+  };
+
+  const refreshToken = async (): Promise<boolean> => {
+    try {
+      const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY) || sessionStorage.getItem(REFRESH_TOKEN_KEY);
+      if (!refreshToken) return false;
+
+      const response = await fetch(API_ENDPOINTS.REFRESH_TOKEN, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const { token } = await response.json();
+        const storage = localStorage.getItem(REFRESH_TOKEN_KEY) ? localStorage : sessionStorage;
+        storage.setItem(TOKEN_KEY, token);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      return false;
+    }
+  };
 
   const value = {
     currentUser,
@@ -273,23 +270,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     register,
     login,
     logout,
-    updateProfile,
-    changePassword,
-    enableTwoFactor,
-    disableTwoFactor,
-    verifyTwoFactor,
+    updateProfile: async () => false, // Implement these methods as needed
+    changePassword: async () => false,
+    enableTwoFactor: async () => ({ success: false }),
+    disableTwoFactor: async () => false,
+    verifyTwoFactor: async () => false,
     validateSession,
     refreshToken,
-    deleteAccount,
-    exportData,
+    deleteAccount: async () => false,
+    exportData: async () => null,
   };
-
-  console.log('[AuthProvider] Current state:', {
-    isLoading,
-    isFirstRun,
-    hasUser: !!currentUser,
-    hasError: !!error
-  });
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

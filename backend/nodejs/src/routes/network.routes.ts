@@ -1,20 +1,20 @@
 import { Router } from 'express';
-import { authenticateJWT } from '@/middleware/auth.middleware';
+import { authMiddleware } from '@/middleware/auth.middleware';
 import { NetworkController } from '@/controllers/network.controller';
 
 const router = Router();
 const networkController = new NetworkController();
 
 // Network scanning routes
-router.get('/scan', authenticateJWT, networkController.scanNetwork);
+router.get('/scan', authMiddleware, networkController.scanNetwork);
 
 // WOL routes
-router.post('/wake', authenticateJWT, networkController.wakeDevice);
+router.post('/wake', authMiddleware, networkController.wakeDevice);
 
 // Device management
-router.get('/devices', authenticateJWT, networkController.getDevices);
-router.post('/devices', authenticateJWT, networkController.addDevice);
-router.put('/devices/:id', authenticateJWT, networkController.updateDevice);
-router.delete('/devices/:id', authenticateJWT, networkController.deleteDevice);
+router.get('/devices', authMiddleware, networkController.getDevices);
+router.post('/devices', authMiddleware, networkController.addDevice);
+router.put('/devices/:id', authMiddleware, networkController.updateDevice);
+router.delete('/devices/:id', authMiddleware, networkController.deleteDevice);
 
 export { router as networkRoutes };
