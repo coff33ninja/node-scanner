@@ -140,3 +140,30 @@ npm run dev
 ## Development
 
 ### Code Structure
+
+backend/
+└── nodejs/
+    ├── src/
+    │   ├── config/
+    │   │   ├── passport.ts        # Passport configuration
+    │   │   └── database.ts        # Database configuration
+    │   ├── controllers/
+    │   │   ├── auth.controller.ts # Authentication controller
+    │   │   └── user.controller.ts # User management controller
+    │   ├── middleware/
+    │   │   ├── auth.middleware.ts # Authentication middleware
+    │   │   ├── errorHandler.ts    # Error handling middleware
+    │   │   └── validate.ts        # Request validation middleware
+    │   ├── models/
+    │   │   └── User.ts           # User model
+    │   ├── routes/
+    │   │   ├── auth.routes.ts    # Authentication routes
+    │   │   └── user.routes.ts    # User management routes
+    │   ├── utils/
+    │   │   ├── logger.ts         # Logging utility
+    │   │   └── validators.ts     # Input validation utility
+    │   └── server.ts             # Main application file
+    ├── package.json
+    └── tsconfig.json
+frontend/
+└── 
