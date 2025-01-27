@@ -1,23 +1,23 @@
 import React, { useState } from 'react';
-import Layout from '../components/Layout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAuth } from '@/contexts/AuthContext';
+import Layout from '../components/Layout';
 
 const Users = () => {
   const navigate = useNavigate();
   const { register, login, isFirstRun } = useAuth();
+  const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
   const [formData, setFormData] = useState({
     username: '',
     password: '',
     email: '',
-    name: '',
+    name: ''
   });
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -38,7 +38,7 @@ const Users = () => {
       if (success) {
         setSuccess('Registration successful!');
         setTimeout(() => {
-          navigate('/dashboard');
+          navigate('/');
         }, 1500);
       } else {
         setError('Username already exists');
@@ -59,7 +59,7 @@ const Users = () => {
       if (success) {
         setSuccess('Login successful!');
         setTimeout(() => {
-          navigate('/dashboard');
+          navigate('/');
         }, 1500);
       } else {
         setError('Invalid username or password');

@@ -45,7 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const hashedPassword = await bcryptjs.hash(data.password, 10);
     
-    const newUser: User = {
+    const newUser: User & { passwordHash: string } = {
       id: crypto.randomUUID(),
       username: data.username,
       passwordHash: hashedPassword,
@@ -66,8 +66,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = async (username: string, password: string) => {
-    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find((u: User) => u.username === username);
+    const users: (User & { passwordHash: string })[] = JSON.parse(localStorage.getItem('users') || '[]');
+    const user = users.find((u) => u.username === username);
 
     if (!user) return false;
 
@@ -97,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (userIndex === -1) return false;
 
-    const updatedUser: User = {
+    const updatedUser = {
       ...users[userIndex],
       ...data,
       lastActive: new Date().toISOString()
@@ -106,19 +106,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     users[userIndex] = updatedUser;
     localStorage.setItem('users', JSON.stringify(users));
 
-    const { passwordHash, ...userWithoutPassword } = updatedUser;
-    setCurrentUser(userWithoutPassword);
-    localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+    setCurrentUser(updatedUser);
+    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
 
     return true;
   };
 
-
   const changePassword = async (currentPassword: string, newPassword: string) => {
     if (!currentUser) return false;
 
-    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find((u: User) => u.id === currentUser.id);
+    const users: (User & { passwordHash: string })[] = JSON.parse(localStorage.getItem('users') || '[]');
+    const user = users.find((u) => u.id === currentUser.id);
 
     if (!user) return false;
 
