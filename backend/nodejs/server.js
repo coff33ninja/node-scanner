@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { NetworkScanner } from './networkUtils.js';
+import { authRoutes } from './src/routes/auth.routes.js'; // Import the auth routes
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -13,6 +14,9 @@ app.use(cors());
 app.use(express.json());
 
 const networkScanner = new NetworkScanner();
+
+// Use the authentication routes
+app.use('/api/auth', authRoutes);
 
 app.post('/api/network/scan', async (req, res) => {
   try {

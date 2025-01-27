@@ -38,28 +38,26 @@ interface RegisterRequestBody {
 }
 
 // Registration route
-router.post('/register', registerValidation, async (req: Request<{}, {}, RegisterRequestBody>, res: Response) => {
-  try {
-    // Check for validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
+router.post(
+  '/register',
+  registerValidation,
+  async (req: Request<Record<string, never>, unknown, RegisterRequestBody>, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
 
     const { username, email, password, name } = req.body;
 
-    // Check if user already exists
     const existingUser = await User.findOne({
-      $or: [{ username }, { email }]
+      $or: [{ username }, { email }],
     });
 
     if (existingUser) {
-      return res.status(400).json({
-        message: 'Username or email already exists'
-      });
+      return res.status(400).json({ message: 'Username or email already exists' });
     }
 
-    // Create new user
     const user = await User.create({
       username,
       email,
@@ -68,11 +66,10 @@ router.post('/register', registerValidation, async (req: Request<{}, {}, Registe
       preferences: {
         language: req.body.language || 'en',
         theme: 'system',
-        notifications: true
-      }
+        notifications: true,
+      },
     });
 
-    // Generate tokens
     const token = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET || 'your-secret-key',
@@ -85,7 +82,6 @@ router.post('/register', registerValidation, async (req: Request<{}, {}, Registe
       { expiresIn: '7d' }
     );
 
-    // Return user data and tokens
     const userData = {
       id: user._id,
       username: user.username,
@@ -96,13 +92,13 @@ router.post('/register', registerValidation, async (req: Request<{}, {}, Registe
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       isActive: user.isActive,
-      preferences: user.preferences
+      preferences: user.preferences,
     };
 
     res.status(201).json({
       user: userData,
       token,
-      refreshToken
+      refreshToken,
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -110,9 +106,64 @@ router.post('/register', registerValidation, async (req: Request<{}, {}, Registe
   }
 });
 
-// Login route (placeholder for now)
-router.post('/login', (req: Request, res: Response) => {
-  res.status(501).json({ message: 'Not implemented' });
+interface LoginRequestBody {
+  username: string;
+  password: string;
+}
+
+// Login route
+router.post('/login', async (req: Request<object, object, LoginRequestBody>, res: Response) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ message: 'Username and password are required' });
+    }
+
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid username or password' });
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid username or password' });
+    }
+
+    const token = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '1h' }
+    );
+
+    const refreshToken = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key',
+      { expiresIn: '7d' }
+    );
+
+    const userData = {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      lastActive: user.lastActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      isActive: user.isActive,
+      preferences: user.preferences,
+    };
+
+    res.status(200).json({
+      user: userData,
+      token,
+      refreshToken,
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error during login' });
+  }
 });
 
 export const authRoutes = router;
