@@ -14,6 +14,7 @@ const Account = () => {
   
   // Login/Register state
   const [isRegistering, setIsRegistering] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [loginData, setLoginData] = useState({
     username: '',
     password: '',
@@ -122,7 +123,7 @@ const Account = () => {
                 <Input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
                   value={loginData.password}
                   onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
