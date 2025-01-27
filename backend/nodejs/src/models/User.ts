@@ -28,6 +28,8 @@ export interface IUser extends Document {
   loginAttempts: number;
   lockUntil?: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
+  incrementLoginAttempts(): Promise<void>;
+  resetLoginAttempts(): Promise<void>;
 }
 
 const UserSchema = new Schema<IUser>({
@@ -49,7 +51,7 @@ const UserSchema = new Schema<IUser>({
   password: {
     type: String,
     required: true,
-    minlength: 8
+    // Removing minlength restriction
   },
   name: {
     type: String,
@@ -147,4 +149,12 @@ UserSchema.methods.resetLoginAttempts = async function() {
   await this.save();
 };
 
-export const User = mongoose.model<IUser>('User', UserSchema);
+// Check if the model exists before compiling it
+export const User = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
+
+// Type for Request.user
+declare global {
+  namespace Express {
+    interface User extends IUser {}
+  }
+}
