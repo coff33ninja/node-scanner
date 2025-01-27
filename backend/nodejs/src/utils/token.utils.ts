@@ -11,7 +11,7 @@ interface TokenPayload {
 
 export const generateTokens = (user: IUser) => {
     const payload: TokenPayload = {
-        id: user._id.toString(),
+id: user._id, // No need to call toString() since _id is already a string
         role: user.role
     };
 
