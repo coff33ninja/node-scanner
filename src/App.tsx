@@ -71,13 +71,6 @@ const router = createBrowserRouter([
 function App() {
   console.log('[App] Initializing App component');
 
-  React.useEffect(() => {
-    console.log('[App] App component mounted');
-    return () => {
-      console.log('[App] App component will unmount');
-    };
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
