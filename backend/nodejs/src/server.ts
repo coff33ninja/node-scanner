@@ -1,93 +1,51 @@
 import express from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import passport from 'passport';
-import { rateLimit } from 'express-rate-limit';
 import { errorHandler } from '@/middleware/errorHandler';
-import { setupPassport } from '@/config/passport';
-import { authRoutes } from '@/routes/auth.routes';
-import { userRoutes } from '@/routes/user.routes';
-import { logger } from '@/utils/logger';
+import { authRoutes } from './routes/auth.routes';
+import { userRoutes } from './routes/user.routes';
+import { networkRoutes } from './routes/network.routes';
+import { rateLimit } from 'express-rate-limit';
+import helmet from 'helmet';
 
 dotenv.config();
 
 const app = express();
+const port = process.env.PORT || 5000;
 
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   credentials: true
 }));
 
-// Body parsing middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Initialize Passport
-app.use(passport.initialize());
-setupPassport(passport);
-
-// Apply rate limiting
-const apiLimiter = rateLimit({
+// Rate limiting
+const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100 // limit each IP to 100 requests per windowMs
 });
+app.use(limiter);
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5 // limit each IP to 5 login/register requests per windowMs
-});
-
-app.use('/api/', apiLimiter);
-app.use('/api/auth/', authLimiter);
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/user', userRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/network', networkRoutes);
 
 // Error handling
 app.use(errorHandler);
 
-// Database connection with retry logic
-const connectDB = async (retries = 5, timeout = 5000) => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const mongoUri = process.env.MONGODB_URI;
-      if (!mongoUri) {
-        throw new Error('MONGODB_URI is not defined in environment variables');
-      }
+// Database connection
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/wol')
+  .then(() => console.log('MongoDB connected successfully'))
+  .catch(err => console.error('MongoDB connection error:', err));
 
-      await mongoose.connect(mongoUri);
-      logger.info('MongoDB connected successfully');
-      return;
-    } catch (error) {
-      logger.error(`MongoDB connection attempt ${i + 1} failed:`, error);
-      if (i === retries - 1) {
-        logger.error('All connection attempts failed. Exiting...');
-        process.exit(1);
-      }
-      await new Promise(resolve => setTimeout(resolve, timeout));
-    }
-  }
-};
-
-// Start server only after successful database connection
-const startServer = async () => {
-  try {
-    await connectDB();
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
-      logger.info(`Server running on port ${PORT}`);
-    });
-  } catch (error) {
-    logger.error('Failed to start server:', error);
-    process.exit(1);
-  }
-};
-
-startServer();
-
-export default app;
+// Start server
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});

@@ -4,9 +4,9 @@
   "description": "Backend for AltTab application",
   "main": "server.js",
   "scripts": {
-    "start": "node dist/server.js",
-    "dev": "nodemon -r tsconfig-paths/register src/server.ts",
-    "build": "tsc",
+    "start": "ts-node -r tsconfig-paths/register src/server.ts",
+    "dev": "nodemon --exec ts-node -r tsconfig-paths/register src/server.ts",
+    "build": "tsc && tsc-alias",
     "test": "jest"
   },
   "dependencies": {
@@ -42,6 +42,7 @@
     "nodemon": "^3.0.2",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.10",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.3.3"
   }

@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { API_ENDPOINTS, getAuthHeaders } from '@/config/api';
 
 export interface NetworkDevice {
   id?: string;
@@ -19,10 +19,10 @@ export interface ScanOptions {
 
 export const scanNetwork = async (options: ScanOptions): Promise<NetworkDevice[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/network/scan`, {
+    const response = await fetch(API_ENDPOINTS.NETWORK_SCAN, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
       },
       body: JSON.stringify(options),
     });
@@ -40,10 +40,10 @@ export const scanNetwork = async (options: ScanOptions): Promise<NetworkDevice[]
 
 export const wakeDevice = async (mac: string): Promise<boolean> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/network/wake`, {
+    const response = await fetch(API_ENDPOINTS.NETWORK_WAKE, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
       },
       body: JSON.stringify({ mac }),
     });
@@ -62,10 +62,10 @@ export const wakeDevice = async (mac: string): Promise<boolean> => {
 
 export const shutdownDevice = async (ip: string, username?: string, password?: string): Promise<boolean> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/network/shutdown`, {
+    const response = await fetch(API_ENDPOINTS.NETWORK_SHUTDOWN, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
       },
       body: JSON.stringify({ ip, username, password }),
     });

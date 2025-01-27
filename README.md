@@ -1,187 +1,133 @@
-# AltTab - Network Management Dashboard
+# WOL (Wake-on-LAN) Project
 
-A comprehensive network management dashboard with device control, user authentication, and network utilities.
-
-## Project Overview
-
-This project provides a modern web interface for network management, featuring:
-
-- User authentication and account management
-- Network scanning and device discovery
-- Wake-on-LAN (WOL) functionality
-- Device monitoring and control
-- Multi-user access with role-based permissions
+A web application for managing and waking devices on your network using Wake-on-LAN functionality.
 
 ## Prerequisites
 
-Before you begin, ensure you have the following installed:
+Before running the project, make sure you have the following installed:
 
-- **Node.js**: Version 16.x or higher
-- **Python**: Version 3.x
-- **MongoDB**: Version 4.x or higher
-- **npm** or **yarn** package manager
+- Node.js (v16 or higher)
+- MongoDB Community Server
+- Git
 
-## Installation Instructions
+## Installation
 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/coff33ninja/alttab.git
-cd alttab
+git clone https://github.com/yourusername/wol.git
+cd wol
 ```
 
-### 2. Environment Setup
+### 2. Set Up MongoDB
+
+1. Download and install MongoDB Community Server from [MongoDB Download Center](https://www.mongodb.com/try/download/community)
+2. Make sure the MongoDB service is running:
+   - On Windows: Check Services (services.msc) for "MongoDB"
+   - On Linux: `sudo systemctl status mongodb`
+
+### 3. Backend Setup
+
+```bash
+cd backend/nodejs
+npm install
+```
 
 Create a `.env` file in the `backend/nodejs` directory:
 
 ```env
+# Server Configuration
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/alttab
-JWT_SECRET=your-secret-key
-JWT_REFRESH_SECRET=your-refresh-secret-key
-FRONTEND_URL=http://localhost:3000
+NODE_ENV=development
+
+# MongoDB Configuration
+MONGODB_URI=mongodb://localhost:27017/wol
+
+# JWT Configuration
+JWT_SECRET=your_jwt_secret_key_here
+JWT_REFRESH_SECRET=your_jwt_refresh_secret_key_here
+JWT_EXPIRES_IN=1h
+JWT_REFRESH_EXPIRES_IN=7d
+
+# Security
+CORS_ORIGIN=http://localhost:5173
 ```
 
-### 3. Install Dependencies
-
-#### Backend Dependencies
+Start the backend server:
 
 ```bash
-# Install Node.js backend dependencies
-cd backend/nodejs
+npx ts-node -r tsconfig-paths/register src/server.ts
+```
+
+The backend should now be running on `http://localhost:5000`
+
+### 4. Frontend Setup
+
+In a new terminal:
+
+```bash
+cd frontend  # or the root directory if frontend is there
 npm install
-
-# Install Python dependencies
-cd ../python
-python install_requirements.py
-# Or manually: pip install scapy netifaces
-```
-
-#### Frontend Dependencies
-
-```bash
-# From project root
-npm install
-```
-
-### 4. Database Setup
-
-1. Install MongoDB if you haven't already:
-   - [MongoDB Installation Guide](https://docs.mongodb.com/manual/installation/)
-
-2. Start MongoDB service:
-   ```bash
-   # On Windows
-   net start MongoDB
-
-   # On macOS/Linux
-   sudo systemctl start mongod
-   ```
-
-## Running the Application
-
-### 1. Start the Backend Servers
-
-```bash
-# Start Node.js backend (from backend/nodejs directory)
 npm run dev
-
-# The server will start on http://localhost:3000
 ```
 
-### 2. Start the Frontend Development Server
+The frontend should now be running on `http://localhost:5173`
 
-```bash
-# From project root
-npm run dev
+## Usage
 
-# The frontend will start on http://localhost:3001
-```
+### 1. Registration
 
-## Features
+1. Open `http://localhost:5173` in your browser
+2. Click on the Register link
+3. Fill in the registration form:
+   - Username (3-20 characters, letters, numbers, underscores, hyphens)
+   - Strong password
+   - Valid email address
+   - Full name
+   - Accept terms and conditions
+4. Submit the form
 
-### Authentication System
-- User registration with email verification
-- Secure login with JWT tokens
-- Password recovery
-- Two-factor authentication (optional)
-- Session management
+### 2. Login
 
-### Network Utilities
-- Network scanning using ARP requests (Python)
-- TCP-based device discovery (Node.js)
-- Wake-on-LAN (WOL) functionality
-- Remote device shutdown capabilities
+1. Go to the login page
+2. Enter your username and password
+3. Optionally check "Remember me" to stay logged in
+4. Click Login
 
-### User Interface
-- Modern, responsive design
-- Dark/light theme support
-- Real-time device status updates
-- Interactive network topology view
+### 3. Account Security
 
-## Technology Stack
+- After 5 failed login attempts, your account will be temporarily locked for 15 minutes
+- Use a strong password that includes:
+  - At least 8 characters
+  - Mix of uppercase and lowercase letters
+  - Numbers
+  - Special characters
 
-### Frontend
-- React with TypeScript
-- Vite for build tooling
-- TailwindCSS for styling
-- Shadcn UI components
-- React Router for navigation
-- Context API for state management
+## Troubleshooting
 
-### Backend
-- Node.js with Express
-- TypeScript
-- MongoDB with Mongoose
-- JWT for authentication
-- Python for network utilities
-- WebSocket for real-time updates
+### Backend Issues
+
+1. **MongoDB Connection Failed**
+   - Verify MongoDB is running
+   - Check MongoDB connection string in `.env`
+   - Ensure MongoDB port (27017) is not blocked
+
+2. **Port Already in Use**
+   - Change the PORT in `.env`
+   - Check if another service is using port 5000
+
+### Frontend Issues
+
+1. **Login/Register Not Working**
+   - Verify backend is running
+   - Check browser console for errors
+   - Ensure CORS_ORIGIN in backend `.env` matches frontend URL
+
+2. **Network Errors**
+   - Check if backend URL is correct
+   - Verify network connectivity
+   - Check browser console for CORS errors
 
 ## Development
 
-### Code Structure
-
-#### Backend
-```
-backend/
-└── nodejs/
-    ├── src/
-    │   ├── config/
-    │   │   ├── passport.ts        # Passport configuration
-    │   │   └── database.ts        # Database configuration
-    │   ├── controllers/
-    │   │   ├── auth.controller.ts # Authentication controller
-    │   │   └── user.controller.ts # User management controller
-    │   ├── middleware/
-    │   │   ├── auth.middleware.ts # Authentication middleware
-    │   │   ├── errorHandler.ts    # Error handling middleware
-    │   │   └── validate.ts        # Request validation middleware
-    │   ├── models/
-    │   │   └── User.ts           # User model
-    │   ├── routes/
-    │   │   ├── auth.routes.ts    # Authentication routes
-    │   │   └── user.routes.ts    # User management routes
-    │   ├── utils/
-    │   │   ├── logger.ts         # Logging utility
-    │   │   └── validators.ts     # Input validation utility
-    │   └── server.ts             # Main application file
-    ├── package.json
-    └── tsconfig.json
-```
-
-#### Frontend
-```
-frontend/
-└── src/
-    ├── components/               # Reusable UI components
-    │   ├── auth/                 # Authentication components
-    │   ├── device-settings/       # Device settings components
-    │   ├── profile/               # User profile components
-    │   └── ui/                    # UI elements and controls
-    ├── contexts/                  # Context API for state management
-    ├── hooks/                     # Custom hooks
-    ├── pages/                     # Main application pages
-    ├── services/                  # Services for API calls
-    ├── utils/                     # Utility functions
-    ├── App.tsx                    # Main application component
-    └── index.tsx                  # Entry point
+### Backend Structure
