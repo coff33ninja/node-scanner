@@ -1,72 +1,122 @@
 # Wake-on-LAN Web Interface
 
-A modern web interface for managing Wake-on-LAN devices, built with React, TypeScript, and Tailwind CSS.
+A modern web interface for managing Wake-on-LAN devices, built with React, TypeScript, and Tailwind CSS. This application allows you to remotely wake up computers on your network using the Wake-on-LAN protocol.
 
 ## 🚧 Project Status: Early Development
 
-**Note: This project is currently in early development and contains several known issues:**
+This project consists of two main parts:
+- Frontend: React + TypeScript application with Shadcn/UI components
+- Backend: Node.js + Express + TypeScript server
 
-- Login page rendering issues
-- Path resolution problems with imports
-- Authentication flow needs improvement
-- Component loading issues
-- Route protection implementation incomplete
+## Features
 
-These issues are being actively worked on and will be resolved in upcoming updates.
+### Currently Implemented
+- Modern UI with Shadcn/UI components
+- Dark/Light theme support
+- Basic routing setup
+- Authentication foundation
 
-## Features (Planned)
-
+### Coming Soon
 - User authentication and authorization
 - Device management
-- Wake-on-LAN functionality
+  - Add/Remove devices
+  - Wake-on-LAN functionality
+  - Device status monitoring
 - Network scanning
 - Device statistics
 - Profile management
-- Dark/Light theme support
 
 ## Tech Stack
 
-- React + TypeScript
-- Tailwind CSS
+### Frontend
+- React 18 with TypeScript
+- Vite for build tooling
+- Tailwind CSS for styling
 - Shadcn/ui Components
 - React Router v6
-- React Query
-- Vite
+- React Query for data fetching
+- React Hook Form for form handling
+- Zod for validation
 
-## Development
+### Backend
+- Node.js with TypeScript
+- Express.js
+- MongoDB with Mongoose
+- JWT authentication
+- Winston for logging
+- Express-validator and Zod for validation
 
+## Getting Started
+
+### Prerequisites
+- Node.js 18 or higher
+- npm or yarn
+- MongoDB (for backend)
+
+### Development Setup
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/wol.git
+cd wol
+```
+
+2. Frontend Setup:
 ```bash
 # Install dependencies
 npm install
 
 # Start development server
 npm run dev
+```
 
-# Build for production
-npm run build
+3. Backend Setup:
+```bash
+cd backend/nodejs
+npm install
+npm run dev
 ```
 
 ## Known Issues and Limitations
 
 1. Authentication:
-   - Login page may show blank initially
-   - Session management needs improvement
-   - Protected routes implementation incomplete
+   - Login flow needs implementation
+   - Session management to be added
+   - Protected routes to be implemented
 
 2. UI/UX:
-   - Theme switching might not persist
-   - Layout issues on certain screen sizes
-   - Loading states need refinement
+   - Theme persistence needs implementation
+   - Responsive design improvements needed
+   - Loading states to be added
 
 3. Development:
-   - Path aliases (@/) not working consistently
-   - Component hot reloading issues
-   - TypeScript type definitions need enhancement
+   - Path aliases configuration needs fixing
+   - Environment variables setup required
+   - API integration pending
 
 ## Contributing
 
-This project is currently in active development. Contributions are welcome but please note that the codebase is subject to significant changes.
+This project is currently in active development. While contributions are welcome, please note that the codebase is subject to significant changes. If you'd like to contribute:
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
+
+## Security
+
+This project implements several security measures:
+- CORS protection
+- Rate limiting
+- Helmet for HTTP headers
+- JWT for authentication
+- Password hashing with bcrypt
 
 ## License
 
 MIT
+
+## Contact
+
+If you have any questions or suggestions, please open an issue in the GitHub repository.

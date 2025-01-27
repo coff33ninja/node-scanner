@@ -32,11 +32,11 @@ export const register = async (req: Request, res: Response) => {
     await user.save();
 
     // Generate tokens with longer expiration
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'your-secret-key', {
+    const token = jwt.sign({ id: user._id.toString() }, JWT_SECRET, {
       expiresIn: '30d' // Extended to 30 days
     });
 
-    const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key', {
+    const refreshToken = jwt.sign({ id: user._id.toString() }, JWT_REFRESH_SECRET, {
       expiresIn: '60d' // Extended to 60 days
     });
 
@@ -65,6 +65,87 @@ export const register = async (req: Request, res: Response) => {
     console.error('Registration error:', error);
     res.status(500).json({ message: 'Error registering user' });
   }
+};
+
+export const login = async (req: Request, res: Response) => {
+  try {
+    // Validate input
+    await Promise.all(validateLogin.map(validation => validation.run(req)));
+    const errors = validationResult(req);
+
+    if (errors.length) {
+      return res.status(400).json({ errors });
+    }
+
+    const { username, password } = req.body;
+
+    // Find user
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Check if account is locked
+    if (user.lockUntil && user.lockUntil > new Date()) {
+      const remainingTime = Math.ceil((user.lockUntil.getTime() - Date.now()) / 1000 / 60);
+      return res.status(423).json({
+        message: `Account is locked. Try again in ${remainingTime} minutes`
+      });
+    }
+
+    // Verify password
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      await user.incrementLoginAttempts();
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Reset login attempts on successful login
+    await user.resetLoginAttempts();
+
+    // Check if 2FA is enabled
+    if (user.twoFactorEnabled) {
+      return res.status(200).json({
+        requiresTwoFactor: true,
+        userId: user._id
+      });
+    }
+
+    // Generate tokens
+    const token = jwt.sign({ id: user._id.toString() }, JWT_SECRET, { expiresIn: '1h' });
+    const refreshToken = jwt.sign({ id: user._id.toString() }, JWT_REFRESH_SECRET, { expiresIn: '7d' });
+
+    // Save refresh token
+    user.refreshTokens.push({
+      token: refreshToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    });
+
+    // Update user data
+    user.lastActive = new Date();
+    user.lastLoginIp = req.ip;
+    await user.save();
+
+    res.json({
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        twoFactorEnabled: user.twoFactorEnabled,
+        preferences: user.preferences
+      },
+      token,
+      refreshToken
+    });
+  } catch (error) {
+    logger.error('Login error:', error);
+    res.status(500).json({ message: 'Login failed' });
+  }
+};
+
+// Ensure proper closure of the file
 };
 
 export const login = async (req: Request, res: Response) => {
@@ -329,5 +410,43 @@ export const validateSession = async (req: Request, res: Response) => {
   } catch (error) {
     logger.error('Session validation error:', error);
     res.status(500).json({ message: 'Session validation failed' });
+  }
+};
+
+    // Disable 2FA
+    user.twoFactorEnabled = false;
+    user.twoFactorSecret = undefined;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Two-factor authentication has been disabled.'
+    });
+  } catch (error) {
+    logger.error('2FA disable error:', error);
+    res.status(500).json({ message: 'Failed to disable 2FA' });
+  }
+};
+
+export const disableTwoFactor = async (req: Request, res: Response) => {
+  try {
+    const userId = (req.user as any).id;
+    const { currentPassword } = req.body;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    // Verify password before disabling 2FA
+    const isValidPassword = await user.comparePassword(currentPassword);
+    if (!isValidPassword) {
+      return res.status(401).json({ message: 'Invalid password' });
+    }
+    user.twoFactorEnabled = false;
+    user.twoFactorSecret = undefined;
+    await user.save();
+    res.json({ success: true, message: 'Two-factor authentication has been disabled.' });
+  } catch (error) {
+  logger.error('2FA disable error:', error);
+  res.status(500).json({ message: 'Failed to disable 2FA' });
   }
 };
