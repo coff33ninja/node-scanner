@@ -9,9 +9,10 @@ import { UserCircle, Shield, Clock } from "lucide-react";
 interface UserCardProps {
   user: User;
   isOnline?: boolean;
+  onDelete?: () => Promise<void>;
 }
 
-const UserCard = ({ user, isOnline }: UserCardProps) => {
+const UserCard = ({ user, isOnline, onDelete }: UserCardProps) => {
   return (
     <Card className="p-4 hover:shadow-lg transition-shadow">
       <div className="flex items-start space-x-4">

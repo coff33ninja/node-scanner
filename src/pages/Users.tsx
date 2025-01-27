@@ -8,12 +8,7 @@ import UserSkeleton from "@/components/users/UserSkeleton";
 import { databaseService } from "@/services/DatabaseService";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-
-interface User extends DBUser {
-  createdAt: string;
-  updatedAt: string;
-  isActive: boolean;
-}
+import { User } from "@/contexts/AuthContext";
 
 const Users = () => {
   const { currentUser } = useAuth();
@@ -29,7 +24,7 @@ const Users = () => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         isActive: true
-      }));
+      })) as User[];
     },
   });
 
