@@ -76,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const token = localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
+        const token = localStorage.getItem(TOKEN_KEY);
         if (token) {
           const isValid = await validateSession();
           if (isValid) {
@@ -105,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-    if (currentUser && currentUser.role !== 'admin') {
+    if (currentUser) {
       const resetTimer = () => {
         if (sessionTimer) {
           clearTimeout(sessionTimer);
@@ -186,9 +186,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const { token, refreshToken, user } = await response.json();
-      const storage = remember ? localStorage : sessionStorage;
-      storage.setItem(TOKEN_KEY, token);
-      storage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+      if (remember) {
+        localStorage.setItem(TOKEN_KEY, token);
+        localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+      } else {
+        sessionStorage.setItem(TOKEN_KEY, token);
+        sessionStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+      }
       setCurrentUser(user);
       return true;
     } catch (error) {

@@ -11,59 +11,61 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secre
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { username, password, email, name } = req.body;
+    // Validate input
+    const validationResult = validateRegistration(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({ errors: validationResult.errors });
+    }
 
-    // Create a new user with admin role for testing
+    const { username, email, password, name } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({
+      $or: [{ username }, { email }]
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        message: 'Username or email already exists'
+      });
+    }
+
+    // Create new user
     const user = new User({
       username,
-      password,
       email,
-      name,
-      role: 'admin',
-      lastActive: new Date(),
-      passwordChanged: false,
-      preferences: {
-        theme: 'system',
-        notifications: true,
-        language: 'en'
-      }
+      password,
+      name
     });
 
     await user.save();
 
-    // Generate tokens with longer expiration
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'your-secret-key', {
-      expiresIn: '30d' // Extended to 30 days
-    });
+    // Generate tokens
+    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '1h' });
+    const refreshToken = jwt.sign({ id: user._id }, JWT_REFRESH_SECRET, { expiresIn: '7d' });
 
-    const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key', {
-      expiresIn: '60d' // Extended to 60 days
+    // Save refresh token
+    user.refreshTokens.push({
+      token: refreshToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
     });
-
-    // Update last active timestamp
-    user.lastActive = new Date();
     await user.save();
 
-    // Return user data and tokens - same response format as login
+    // Return user data and tokens
     res.status(201).json({
-      success: true,
-      token,
-      refreshToken,
       user: {
         id: user._id,
         username: user.username,
         email: user.email,
         name: user.name,
-        role: user.role,
-        lastActive: user.lastActive,
-        avatarUrl: user.avatarUrl,
-        preferences: user.preferences,
-        passwordChanged: user.passwordChanged
-      }
+        role: user.role
+      },
+      token,
+      refreshToken
     });
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ message: 'Error registering user' });
+    logger.error('Registration error:', error);
+    res.status(500).json({ message: 'Registration failed' });
   }
 };
 
