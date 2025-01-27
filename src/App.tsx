@@ -1,75 +1,66 @@
-import { BrowserRouter } from "react-router-dom";
+import * as React from 'react';
+import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { TooltipProvider } from "./components/ui/tooltip";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider } from "./contexts/AuthContext";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { TooltipProvider } from "@radix-ui/react-tooltip";
-import { Routes, Route, Navigate } from "react-router-dom";
+import AuthWrapper from "./components/auth/AuthWrapper";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
+import Account from "./pages/Account";
 import Index from "./pages/Index";
 import Settings from "./pages/Settings";
-import Account from "./pages/Account";
 import Users from "./pages/Users";
-import { useAuth } from "./contexts/AuthContext";
+import { queryClient } from "./lib/utils";
 
-// Protected Route wrapper component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { currentUser } = useAuth();
-  if (!currentUser) {
-    return <Navigate to="/account" replace />;
-  }
-  return <>{children}</>;
-};
-
-// Initialize QueryClient outside of component to prevent recreation
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
+const router = createBrowserRouter([
+  {
+    path: "/account",
+    element: <Account />,
   },
-});
+  {
+    path: "/",
+    element: (
+      <ProtectedRoute>
+        <Index />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/settings",
+    element: (
+      <ProtectedRoute>
+        <Settings />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/users",
+    element: (
+      <ProtectedRoute>
+        <Users />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "*",
+    element: <Navigate to="/account" replace />,
+  },
+]);
 
-function App() {
+const App: React.FC = () => {
   return (
-    <BrowserRouter>
+    <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
-          <QueryClientProvider client={queryClient}>
-            <AuthProvider>
-              <Routes>
-                <Route path="/account" element={<Account />} />
-                <Route
-                  path="/"
-                  element={
-                    <ProtectedRoute>
-                      <Index />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/settings"
-                  element={
-                    <ProtectedRoute>
-                      <Settings />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/users"
-                  element={
-                    <ProtectedRoute>
-                      <Users />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="*" element={<Navigate to="/account" replace />} />
-              </Routes>
-            </AuthProvider>
-          </QueryClientProvider>
+          <AuthProvider>
+            <AuthWrapper>
+              <RouterProvider router={router} />
+            </AuthWrapper>
+          </AuthProvider>
         </TooltipProvider>
       </ThemeProvider>
-    </BrowserRouter>
+    </QueryClientProvider>
   );
-}
+};
 
 export default App;

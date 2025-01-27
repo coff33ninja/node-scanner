@@ -1,35 +1,56 @@
-import mongoose from 'mongoose';
+import mongoose, { Document, Schema } from 'mongoose';
 
-const deviceSchema = new mongoose.Schema({
+export interface IDevice extends Document {
+  userId: mongoose.Types.ObjectId;
+  name: string;
+  macAddress: string;
+  ipAddress: string;
+  vendor?: string;
+  lastSeen?: Date;
+  isOnline?: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const DeviceSchema = new Schema<IDevice>({
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
   name: {
     type: String,
-    required: true
+    required: true,
+    trim: true
   },
   macAddress: {
     type: String,
     required: true,
+    trim: true,
+    uppercase: true,
     match: /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/
   },
   ipAddress: {
     type: String,
     required: true,
-    match: /^(\d{1,3}\.){3}\d{1,3}$/
+    trim: true
   },
-  lastWake: {
+  vendor: {
+    type: String,
+    trim: true
+  },
+  lastSeen: {
     type: Date
   },
-  status: {
-    type: String,
-    enum: ['online', 'offline', 'unknown'],
-    default: 'unknown'
+  isOnline: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
 });
 
-export const Device = mongoose.model('Device', deviceSchema);
+// Index for faster queries
+DeviceSchema.index({ userId: 1, macAddress: 1 }, { unique: true });
+
+export const Device = mongoose.models.Device || mongoose.model<IDevice>('Device', DeviceSchema);
