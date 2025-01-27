@@ -7,6 +7,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Settings from "./pages/Settings";
 import Account from "./pages/Account";
+import Users from "./pages/Users";
 import { useAuth } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <Settings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/users"
+                  element={
+                    <ProtectedRoute>
+                      <Users />
                     </ProtectedRoute>
                   }
                 />
