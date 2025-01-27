@@ -141,6 +141,8 @@ npm run dev
 
 ### Code Structure
 
+#### Backend
+```
 backend/
 └── nodejs/
     ├── src/
@@ -165,5 +167,21 @@ backend/
     │   └── server.ts             # Main application file
     ├── package.json
     └── tsconfig.json
+```
+
+#### Frontend
+```
 frontend/
-└── 
+└── src/
+    ├── components/               # Reusable UI components
+    │   ├── auth/                 # Authentication components
+    │   ├── device-settings/       # Device settings components
+    │   ├── profile/               # User profile components
+    │   └── ui/                    # UI elements and controls
+    ├── contexts/                  # Context API for state management
+    ├── hooks/                     # Custom hooks
+    ├── pages/                     # Main application pages
+    ├── services/                  # Services for API calls
+    ├── utils/                     # Utility functions
+    ├── App.tsx                    # Main application component
+    └── index.tsx                  # Entry point
