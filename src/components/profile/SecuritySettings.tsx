@@ -8,7 +8,7 @@ import { Shield, Key } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 
-export function SecuritySettings() {
+const SecuritySettings = () => {
   const { currentUser, changePassword, enableTwoFactor, disableTwoFactor, verifyTwoFactor } = useAuth();
   const { toast } = useToast();
   const [currentPassword, setCurrentPassword] = useState("");
@@ -167,4 +167,6 @@ export function SecuritySettings() {
       </Card>
     </div>
   );
-}
+};
+
+export default SecuritySettings;
