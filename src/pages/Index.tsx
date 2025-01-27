@@ -5,7 +5,7 @@ import { DeviceStats } from "../components/DeviceStats";
 import { useEffect, useState } from "react";
 import { NetworkDevice } from "../utils/networkUtils";
 import { useToast } from "../components/ui/use-toast";
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 const STORAGE_KEY = 'network-devices';
 
@@ -42,7 +42,7 @@ const Index = () => {
         
         if (Array.isArray(response.data)) {
           setDevices(prevDevices => {
-            const newDevices = response.data.filter(newDevice => 
+            const newDevices: NetworkDevice[] = response.data.filter((newDevice: NetworkDevice) => 
               !prevDevices.some(existingDevice => existingDevice.ip === newDevice.ip)
             );
             return [...prevDevices, ...newDevices];
@@ -52,8 +52,7 @@ const Index = () => {
         }
       } catch (error) {
         console.error('Error fetching devices:', error);
-        // Don't show error toast for network errors as they're expected when backend is not available
-        if (error.message !== "Network Error") {
+        if ((error as AxiosError).message !== "Network Error") {
           toast({
             title: "Error",
             description: "Failed to fetch network devices",

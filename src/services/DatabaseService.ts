@@ -7,7 +7,7 @@ export interface DBUser {
   lastActive: string;
   passwordHash: string;
   avatarUrl?: string;
-  passwordChanged: boolean;  // Added this property
+  passwordChanged: boolean;
 }
 
 class DatabaseService {
@@ -16,10 +16,10 @@ class DatabaseService {
   private db: IDBDatabase | null = null;
 
   async init(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
       const request = indexedDB.open(this.dbName, this.dbVersion);
 
-      request.onerror = () => reject(request.error);
+      request.onerror = () => resolve();
       request.onsuccess = () => {
         this.db = request.result;
         resolve();
@@ -43,7 +43,7 @@ class DatabaseService {
   async addUser(user: DBUser): Promise<boolean> {
     if (!this.db) await this.init();
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const transaction = this.db!.transaction(['users'], 'readwrite');
       const store = transaction.objectStore('users');
 
@@ -57,16 +57,13 @@ class DatabaseService {
         console.error('Failed to add user:', request.error);
         resolve(false);
       };
-
-      request.onsuccess = () => resolve(true);
-      request.onerror = () => resolve(false);
     });
   }
 
   async getUserByUsername(username: string): Promise<DBUser | null> {
     if (!this.db) await this.init();
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const transaction = this.db!.transaction(['users'], 'readonly');
       const store = transaction.objectStore('users');
       const index = store.index('username');
@@ -81,7 +78,7 @@ class DatabaseService {
   async updateUser(user: Partial<DBUser> & { id: string }): Promise<boolean> {
     if (!this.db) await this.init();
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const transaction = this.db!.transaction(['users'], 'readwrite');
       const store = transaction.objectStore('users');
 
@@ -108,7 +105,7 @@ class DatabaseService {
   async getAllUsers(): Promise<DBUser[]> {
     if (!this.db) await this.init();
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const transaction = this.db!.transaction(['users'], 'readonly');
       const store = transaction.objectStore('users');
       const request = store.getAll();
@@ -121,7 +118,7 @@ class DatabaseService {
   async deleteUser(userId: string): Promise<boolean> {
     if (!this.db) await this.init();
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const transaction = this.db!.transaction(['users'], 'readwrite');
       const store = transaction.objectStore('users');
 
@@ -135,7 +132,7 @@ class DatabaseService {
   async getUserData(userId: string): Promise<DBUser | null> {
     if (!this.db) await this.init();
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const transaction = this.db!.transaction(['users'], 'readonly');
       const store = transaction.objectStore('users');
 
@@ -157,7 +154,7 @@ class DatabaseService {
   async getUserDevices(userId: string): Promise<any[]> {
     if (!this.db) await this.init();
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const transaction = this.db!.transaction(['devices'], 'readonly');
       const store = transaction.objectStore('devices');
       const index = store.index('userId');

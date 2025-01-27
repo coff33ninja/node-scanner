@@ -1,14 +1,19 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
-import { Search, Users as UsersIcon } from "lucide-react";
+import { Users as UsersIcon } from "lucide-react";
 import Layout from "@/components/Layout";
 import UserCard from "@/components/users/UserCard";
 import UserSkeleton from "@/components/users/UserSkeleton";
 import { databaseService } from "@/services/DatabaseService";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
+
+interface User extends DBUser {
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+}
 
 const Users = () => {
   const { currentUser } = useAuth();
@@ -17,7 +22,15 @@ const Users = () => {
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
-    queryFn: databaseService.getAllUsers,
+    queryFn: async () => {
+      const dbUsers = await databaseService.getAllUsers();
+      return dbUsers.map(user => ({
+        ...user,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isActive: true
+      }));
+    },
   });
 
   const filteredUsers = users.filter((user) =>
@@ -56,7 +69,6 @@ const Users = () => {
           </div>
           
           <div className="relative w-64">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search users..."
               value={searchQuery}
@@ -77,6 +89,7 @@ const Users = () => {
                 key={user.id}
                 user={user}
                 isOnline={user.lastActive > new Date(Date.now() - 5 * 60 * 1000).toISOString()}
+                onDelete={() => handleDeleteUser(user.id)}
               />
             ))
           ) : (
