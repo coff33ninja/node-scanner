@@ -1,17 +1,28 @@
-import Layout from "@/components/Layout";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Key, Shield } from "lucide-react";
-import { useState } from "react";
+import { User, Key, Shield, LogIn } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import Layout from "@/components/Layout";
 
 const Account = () => {
-  const { currentUser, updateProfile, changePassword, logout } = useAuth();
+  const { currentUser, updateProfile, changePassword, logout, register, login, isFirstRun } = useAuth();
   const navigate = useNavigate();
   
+  // Login/Register state
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [loginData, setLoginData] = useState({
+    username: '',
+    password: '',
+    email: '',
+    name: ''
+  });
+  const [authError, setAuthError] = useState('');
+  const [authSuccess, setAuthSuccess] = useState('');
+
   // Profile state
   const [profileName, setProfileName] = useState(currentUser?.name || '');
   const [profileEmail, setProfileEmail] = useState(currentUser?.email || '');
@@ -22,55 +33,131 @@ const Account = () => {
   const [newPassword, setNewPassword] = useState('');
   const [passwordStatus, setPasswordStatus] = useState<string>('');
 
+  useEffect(() => {
+    if (currentUser) {
+      setProfileName(currentUser.name);
+      setProfileEmail(currentUser.email);
+    }
+  }, [currentUser]);
+
+  const handleAuthSubmit = async () => {
+    try {
+      if (isRegistering || isFirstRun) {
+        if (!loginData.username || !loginData.password || !loginData.email || !loginData.name) {
+          setAuthError('All fields are required');
+          return;
+        }
+        const success = await register(loginData);
+        if (success) {
+          setAuthSuccess('Registration successful!');
+          setTimeout(() => navigate('/'), 1500);
+        } else {
+          setAuthError('Username already exists');
+        }
+      } else {
+        if (!loginData.username || !loginData.password) {
+          setAuthError('Username and password are required');
+          return;
+        }
+        const success = await login(loginData.username, loginData.password);
+        if (success) {
+          setAuthSuccess('Login successful!');
+          setTimeout(() => navigate('/'), 1500);
+        } else {
+          setAuthError('Invalid username or password');
+        }
+      }
+    } catch (error) {
+      setAuthError('Authentication failed. Please try again.');
+    }
+  };
+
   if (!currentUser) {
-    navigate('/login');
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md p-8">
+          <h1 className="text-3xl font-bold mb-8 text-center">
+            {isFirstRun ? 'Create Admin Account' : (isRegistering ? 'Create Account' : 'Login')}
+          </h1>
+
+          {authError && (
+            <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-md">
+              {authError}
+            </div>
+          )}
+          {authSuccess && (
+            <div className="mb-4 p-4 bg-green-100 text-green-700 rounded-md">
+              {authSuccess}
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                value={loginData.username}
+                onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={loginData.password}
+                onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+              />
+            </div>
+
+            {(isRegistering || isFirstRun) && (
+              <>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={loginData.email}
+                    onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input
+                    id="name"
+                    value={loginData.name}
+                    onChange={(e) => setLoginData({ ...loginData, name: e.target.value })}
+                  />
+                </div>
+              </>
+            )}
+
+            <Button className="w-full" onClick={handleAuthSubmit}>
+              {isFirstRun ? 'Create Admin Account' : (isRegistering ? 'Register' : 'Login')}
+            </Button>
+
+            {!isFirstRun && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRegistering(!isRegistering);
+                  setAuthError('');
+                  setLoginData({ username: '', password: '', email: '', name: '' });
+                }}
+                className="text-primary hover:underline w-full text-center mt-4"
+              >
+                {isRegistering ? 'Already have an account? Login' : "Don't have an account? Register"}
+              </button>
+            )}
+          </div>
+        </Card>
+      </div>
+    );
   }
 
-  const handleSaveProfile = async () => {
-    try {
-      const success = await updateProfile({
-        name: profileName,
-        email: profileEmail
-      });
-
-      if (success) {
-        setProfileStatus('Profile updated successfully!');
-      } else {
-        setProfileStatus('Error updating profile.');
-      }
-      
-      setTimeout(() => setProfileStatus(''), 3000);
-    } catch (error) {
-      setProfileStatus('Error updating profile.');
-      setTimeout(() => setProfileStatus(''), 3000);
-    }
-  };
-
-  const handleChangePassword = async () => {
-    try {
-      if (!currentPassword || !newPassword) {
-        setPasswordStatus('Both passwords are required');
-        return;
-      }
-
-      const success = await changePassword(currentPassword, newPassword);
-      
-      if (success) {
-        setCurrentPassword('');
-        setNewPassword('');
-        setPasswordStatus('Password changed successfully!');
-      } else {
-        setPasswordStatus('Current password is incorrect');
-      }
-      
-      setTimeout(() => setPasswordStatus(''), 3000);
-    } catch (error) {
-      setPasswordStatus('Error changing password.');
-      setTimeout(() => setPasswordStatus(''), 3000);
-    }
-  };
-
+  // Profile management UI for logged-in users
   return (
     <Layout>
       <div className="mb-8">
@@ -104,7 +191,16 @@ const Account = () => {
                 onChange={(e) => setProfileEmail(e.target.value)}
               />
             </div>
-            <Button onClick={handleSaveProfile}>Update Profile</Button>
+            <Button onClick={async () => {
+              const success = await updateProfile({
+                name: profileName,
+                email: profileEmail
+              });
+              setProfileStatus(success ? 'Profile updated successfully!' : 'Error updating profile.');
+              setTimeout(() => setProfileStatus(''), 3000);
+            }}>
+              Update Profile
+            </Button>
             {profileStatus && (
               <p className={`text-sm ${profileStatus.includes('Error') ? 'text-red-500' : 'text-green-500'}`}>
                 {profileStatus}
@@ -137,9 +233,21 @@ const Account = () => {
                 onChange={(e) => setNewPassword(e.target.value)}
               />
             </div>
-            <Button onClick={handleChangePassword}>Change Password</Button>
+            <Button onClick={async () => {
+              const success = await changePassword(currentPassword, newPassword);
+              if (success) {
+                setCurrentPassword('');
+                setNewPassword('');
+                setPasswordStatus('Password changed successfully!');
+              } else {
+                setPasswordStatus('Current password is incorrect');
+              }
+              setTimeout(() => setPasswordStatus(''), 3000);
+            }}>
+              Change Password
+            </Button>
             {passwordStatus && (
-              <p className={`text-sm ${passwordStatus.includes('Error') || passwordStatus.includes('incorrect') ? 'text-red-500' : 'text-green-500'}`}>
+              <p className={`text-sm ${passwordStatus.includes('incorrect') ? 'text-red-500' : 'text-green-500'}`}>
                 {passwordStatus}
               </p>
             )}
@@ -152,21 +260,12 @@ const Account = () => {
             <h2 className="text-xl font-semibold">Security</h2>
           </div>
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium">Two-Factor Authentication</h3>
-                <p className="text-sm text-muted-foreground">
-                  Add an extra layer of security to your account
-                </p>
-              </div>
-              <Button variant="outline">Enable 2FA</Button>
-            </div>
             <div className="pt-4 border-t">
               <Button 
                 variant="destructive"
                 onClick={() => {
                   logout();
-                  navigate('/login');
+                  navigate('/account');
                 }}
               >
                 Logout
