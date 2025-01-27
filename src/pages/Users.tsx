@@ -50,11 +50,11 @@ const Users = () => {
       const bcryptjs = await import('bcryptjs');
       const hashedPassword = await bcryptjs.hash(newUser.password, 10);
       
-      const newUserData = {
+      const newUserData: UserListItem & { passwordHash: string } = {
         id: crypto.randomUUID(),
         ...newUser,
         passwordHash: hashedPassword,
-        role: 'user',
+        role: 'user' as const,
         lastActive: new Date().toISOString(),
       };
 
