@@ -126,7 +126,7 @@ export class NetworkScanner {
                   
                   if (isAnyPortOpen) break;
                 } catch (err) {
-                  console.error(`Error scanning port ${port} on ${ip}:`, err);
+                  console.error(`Error scanning port %d on %s:`, port, ip, err);
                 }
               }
 
