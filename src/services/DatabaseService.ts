@@ -1,5 +1,5 @@
 export interface DBUser {
-  _id: string;  // Changed from id to _id to match MongoDB
+  id: string;  // Changed from _id to id for SQLite compatibility
   username: string;
   email: string;
   name: string;
@@ -36,12 +36,12 @@ class DatabaseService {
           db.deleteObjectStore('devices');
         }
 
-        // Create new stores with _id as keyPath
-        const userStore = db.createObjectStore('users', { keyPath: '_id' });
+        // Create new stores with id as keyPath
+        const userStore = db.createObjectStore('users', { keyPath: 'id' });
         userStore.createIndex('username', 'username', { unique: true });
         userStore.createIndex('email', 'email', { unique: true });
 
-        const deviceStore = db.createObjectStore('devices', { keyPath: '_id' });
+        const deviceStore = db.createObjectStore('devices', { keyPath: 'id' });
         deviceStore.createIndex('userId', 'userId');
       };
     });
@@ -82,14 +82,14 @@ class DatabaseService {
     });
   }
 
-  async updateUser(user: Partial<DBUser> & { _id: string }): Promise<boolean> {
+  async updateUser(user: Partial<DBUser> & { id: string }): Promise<boolean> {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['users'], 'readwrite');
       const store = transaction.objectStore('users');
 
-      const getRequest = store.get(user._id);
+      const getRequest = store.get(user.id);
 
       getRequest.onsuccess = () => {
         const existingUser = getRequest.result;
