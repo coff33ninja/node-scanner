@@ -1,0 +1,40 @@
+{
+  "express": {
+    "imports": {
+      "basic": "import express from 'express'",
+      "types": "import { Request, Response, NextFunction, Router } from 'express'",
+      "app": "import { Express } from 'express'"
+    },
+    "types": {
+      "Request": "Express.Request",
+      "Response": "Express.Response",
+      "NextFunction": "Express.NextFunction",
+      "Router": "Express.Router"
+    }
+  },
+  "mongoose": {
+    "imports": {
+      "basic": "import mongoose from 'mongoose'",
+      "schema": "import { Schema, model, Document, Model } from 'mongoose'"
+    },
+    "types": {
+      "ObjectId": "mongoose.Types.ObjectId",
+      "Document": "mongoose.Document",
+      "Model": "mongoose.Model"
+    }
+  },
+  "custom_types": {
+    "User": {
+      "import": "import { IUser } from '../models/User'",
+      "interface": "interface IUser extends Document { ... }"
+    },
+    "Device": {
+      "import": "import { IDevice } from '../models/device.model'",
+      "interface": "interface IDevice extends Document { ... }"
+    },
+    "AuthenticatedRequest": {
+      "import": "import { AuthenticatedRequest } from '../types/express'",
+      "interface": "interface AuthenticatedRequest extends Request { user: IUser }"
+    }
+  }
+}

@@ -1,111 +1,88 @@
-import { Request, Response } from 'express';
-import { Device } from '@/models/device.model';
-import { networkUtils } from '@/utils/networkUtils';
+import { Response } from 'express';
+import { AuthenticatedRequest } from '../types/express';
+import { Device } from '../models/device.model';
+import { networkUtils } from '../utils/networkUtils';
 
-export class NetworkController {
-  // Network scanning
-  async scanNetwork(req: Request, res: Response) {
-    try {
-      const scanOptions = req.body;
-      if (!scanOptions) {
-        return res.status(400).json({ error: 'Scan options are required' });
-      }
-      const devices = await networkUtils.scanNetwork(scanOptions);
-      res.json({ devices });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to scan network' });
-    }
+export const scanNetwork = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const devices = await networkUtils.scanNetwork([]);
+    return res.json(devices);
+  } catch (error) {
+    return res.status(500).json({ message: 'Error scanning network', error });
   }
+};
 
-  // Wake-on-LAN
-  async wakeDevice(req: Request, res: Response) {
-    try {
-      const { macAddress } = req.body;
-      if (!macAddress || !/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(macAddress)) {
-        return res.status(400).json({ error: 'Valid MAC address is required' });
-      }
-
-      await networkUtils.wakeDevice(macAddress);
-      res.json({ success: true, message: 'Wake-on-LAN packet sent' });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to send Wake-on-LAN packet' });
-    }
+export const wakeDevice = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { macAddress } = req.body;
+    await networkUtils.wakeDevice(macAddress);
+    return res.json({ message: 'Wake packet sent' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error sending wake packet', error });
   }
+};
 
-  // Device management
-  async getDevices(req: Request, res: Response) {
-    try {
-      const userId = req.user?.id;
-      const devices = await Device.find({ userId });
-      res.json({ devices });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to fetch devices' });
+export const getDevices = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user?._id) {
+      return res.status(401).json({ message: 'User not authenticated' });
     }
+    const devices = await Device.find({ userId: req.user._id });
+    return res.json(devices);
+  } catch (error) {
+    return res.status(500).json({ message: 'Error fetching devices', error });
   }
+};
 
-  async addDevice(req: Request, res: Response) {
-    try {
-      const userId = req.user?.id;
-      const { name, macAddress, ipAddress } = req.body;
-
-      if (!/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(macAddress)) {
-        return res.status(400).json({ error: 'Invalid MAC address format' });
-      }
-
-      if (!/^(\d{1,3}\.){3}\d{1,3}$/.test(ipAddress)) {
-        return res.status(400).json({ error: 'Invalid IP address format' });
-      }
-
-      const device = new Device({
-        userId,
-        name,
-        macAddress,
-        ipAddress
-      });
-
-      await device.save();
-      res.status(201).json({ device });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to add device' });
+export const addDevice = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user?._id) {
+      return res.status(401).json({ message: 'User not authenticated' });
     }
+    const device = new Device({
+      ...req.body,
+      userId: req.user._id
+    });
+    await device.save();
+    return res.status(201).json(device);
+  } catch (error) {
+    return res.status(500).json({ message: 'Error adding device', error });
   }
+};
 
-  async updateDevice(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const userId = req.user?.id;
-      const update = req.body;
-
-      const device = await Device.findOneAndUpdate(
-        { _id: id, userId },
-        update,
-        { new: true }
-      );
-
-      if (!device) {
-        return res.status(404).json({ error: 'Device not found' });
-      }
-
-      res.json({ device });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to update device' });
+export const updateDevice = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user?._id) {
+      return res.status(401).json({ message: 'User not authenticated' });
     }
-  }
-
-  async deleteDevice(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const userId = req.user?.id;
-
-      const device = await Device.findOneAndDelete({ _id: id, userId });
-
-      if (!device) {
-        return res.status(404).json({ error: 'Device not found' });
-      }
-
-      res.json({ success: true });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to delete device' });
+    const device = await Device.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user._id },
+      req.body,
+      { new: true }
+    );
+    if (!device) {
+      return res.status(404).json({ message: 'Device not found' });
     }
+    return res.json(device);
+  } catch (error) {
+    return res.status(500).json({ message: 'Error updating device', error });
   }
-}
+};
+
+export const deleteDevice = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user?._id) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+    const device = await Device.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user._id
+    });
+    if (!device) {
+      return res.status(404).json({ message: 'Device not found' });
+    }
+    return res.json({ message: 'Device deleted' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error deleting device', error });
+  }
+};

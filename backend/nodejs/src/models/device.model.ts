@@ -1,35 +1,27 @@
-import mongoose from 'mongoose';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { User } from './User';
 
-const deviceSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  name: {
-    type: String,
-    required: true
-  },
-  macAddress: {
-    type: String,
-    required: true,
-    match: /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/
-  },
-  ipAddress: {
-    type: String,
-    required: true,
-    match: /^(\d{1,3}\.){3}\d{1,3}$/
-  },
-  lastWake: {
-    type: Date
-  },
-  status: {
-    type: String,
-    enum: ['online', 'offline', 'unknown'],
-    default: 'unknown'
-  }
-}, {
-  timestamps: true
-});
+@Entity()
+export class Device {
+  @PrimaryGeneratedColumn()
+  id?: number; // Marked as optional
 
-export const Device = mongoose.model('Device', deviceSchema);
+  @ManyToOne(() => User, user => user.devices)
+  @JoinColumn({ name: 'userId' })
+  user?: User; // Marked as optional
+
+  @Column()
+  name: string;
+
+  @Column()
+  macAddress: string;
+
+  @Column({ nullable: true }) // Made optional
+  ipAddress?: string; // Marked as optional
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastWake?: Date; // Marked as optional
+
+  @Column({ default: 'unknown' })
+  status: 'online' | 'offline' | 'unknown';
+}

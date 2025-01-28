@@ -1,0 +1,174 @@
+  "imports": {
+    "express": {
+      "default": "express",
+      "types": ["Request", "Response", "NextFunction", "Router", "RequestHandler", "ErrorRequestHandler"],
+      "usage": "import express, { Request, Response, NextFunction, Router } from 'express';",
+      "middleware": {
+        "basic": "app.use(express.json());",
+        "static": "app.use(express.static('public'));",
+        "urlencoded": "app.use(express.urlencoded({ extended: true }));",
+        "cors": "app.use(cors());"
+      }
+    },
+    "mongoose": {
+      "default": "mongoose",
+      "types": ["Schema", "Document", "Model", "ObjectId", "FilterQuery", "UpdateQuery"],
+      "usage": "import mongoose, { Schema, Document, Model } from 'mongoose';",
+      "connection": {
+        "basic": "mongoose.connect(process.env.MONGODB_URI);",
+        "withOptions": "mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });"
+      },
+      "schema_options": {
+        "timestamps": "{ timestamps: true }",
+        "toJSON": "{ toJSON: { virtuals: true } }",
+        "indexes": "schema.index({ field: 1 })"
+      }
+    },
+    "passport": {
+      "usage": "import passport from 'passport';",
+      "strategies": {
+        "jwt": "import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';",
+        "local": "import { Strategy as LocalStrategy } from 'passport-local';"
+      }
+    },
+    "controllers": {
+      "patterns": {
+        "basic": "async (req: Request, res: Response) => {}",
+        "with_next": "async (req: Request, res: Response, next: NextFunction) => {}",
+        "error_handling": "try { } catch (error) { next(error); }",
+        "route_handler": {
+          "basic": "(req: Request, res: Response) => controllerFunction(req, res)",
+          "with_middleware": "(req: Request, res: Response) => controllerFunction(req as any, res)",
+          "with_next": "(req: Request, res: Response, next: NextFunction) => controllerFunction(req, res)"
+        }
+      },
+      "responses": {
+        "success": "res.status(200).json({ data });",
+        "created": "res.status(201).json({ data });",
+        "error": "res.status(error.status || 500).json({ message: error.message });"
+      }
+    },
+    "middleware": {
+      "pattern": "import { middlewareName } from '../middleware/[name].middleware';",
+      "example": "import { authenticateJWT } from '../middleware/auth.middleware';",
+      "error": "import { errorHandler } from '../middleware/errorHandler';"
+    },
+    "validators": {
+      "pattern": "import { validateSchema } from '../validators/[name].validator';",
+      "usage": "router.post('/path', validateSchema, controller);"
+    },
+    "utils": {
+      "logger": "import { logger } from '../utils/logger';",
+      "network": "import { networkUtils } from '../utils/networkUtils';"
+    }
+  },
+  "types": {
+    "Request": {
+      "basic": "Request",
+      "authenticated": "AuthenticatedRequest",
+      "conversion": "req as AuthenticatedRequest",
+      "customProperties": {
+        "user": "IUser | undefined",
+        "device": "IDevice | undefined",
+        "network": "INetwork | undefined",
+        "body": "T",
+        "params": "P",
+        "query": "Q"
+      },
+      "safety_patterns": {
+        "user_check": "if (!req.user?._id) { return res.status(401).json({ message: 'User not authenticated' }); }",
+        "optional_chaining": "req.user?.propertyName",
+        "type_guard": "if ('propertyName' in req.body)"
+      }
+    }
+  },
+    "Response": {
+      "usage": "Response<T>",
+      "methods": {
+        "json": "res.json(data)",
+        "status": "res.status(code)",
+        "send": "res.send(data)",
+        "sendFile": "res.sendFile(path)"
+      }
+    },
+    "models": {
+      "schema": {
+        "basic": "new mongoose.Schema({ field: Type })",
+        "with_options": "new mongoose.Schema({ field: Type }, { timestamps: true })",
+        "exports": {
+          "named": "export const ModelName = mongoose.model('ModelName', schema);",
+          "interface": "export interface IModelName extends Document { /* properties */ }",
+          "type": "export type ModelDocument = Document & { /* properties */ }"
+        },
+        "imports": {
+          "model": "import { ModelName } from '../models/model.name';",
+          "interface": "import { IModelName } from '../models/model.name';",
+          "mongoose": "import mongoose, { Schema, Document, Model } from 'mongoose';"
+        }
+      }
+    }
+      "User": {
+        "interface": "IUser",
+        "model": "UserModel",
+        "document": "UserDocument"
+      },
+      "Device": {
+        "interface": "IDevice",
+        "model": "DeviceModel",
+        "document": "DeviceDocument"
+      },
+      "Network": {
+        "interface": "INetwork",
+        "model": "NetworkModel",
+        "document": "NetworkDocument"
+      }
+    }
+  },
+  "middleware": {
+    "authentication": {
+      "jwt": {
+        "verify": "jwt.verify(token, secret)",
+        "error_handling": {
+          "no_token": "return res.status(401).json({ message: 'No token provided' });",
+          "invalid_token": "return res.status(403).json({ message: 'Invalid token' });"
+        }
+      },
+      "rate_limiting": {
+        "usage": "import rateLimit from 'express-rate-limit';",
+        "config": "{ windowMs: 15 * 60 * 1000, max: 100 }"
+      }
+    },
+    "validation": {
+      "body": "validateBody(schema)",
+      "params": "validateParams(schema)",
+      "query": "validateQuery(schema)"
+    }
+  },
+  "error_handling": {
+    "custom_errors": {
+      "ApiError": "class ApiError extends Error",
+      "ValidationError": "class ValidationError extends Error",
+      "AuthenticationError": "class AuthenticationError extends Error"
+    },
+    "status_codes": {
+      "400": "Bad Request",
+      "401": "Unauthorized",
+      "403": "Forbidden",
+      "404": "Not Found",
+      "409": "Conflict",
+      "422": "Unprocessable Entity",
+      "429": "Too Many Requests",
+      "500": "Internal Server Error"
+    }
+  },
+  "security": {
+    "headers": {
+      "helmet": "app.use(helmet());",
+      "cors": "app.use(cors(corsOptions));"
+    },
+    "sanitization": {
+      "mongo": "app.use(mongoSanitize());",
+      "xss": "app.use(xss());"
+    }
+  }
+}

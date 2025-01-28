@@ -1,0 +1,150 @@
+  "imports": {
+    "react": {
+      "core": "import React, { useState, useEffect, useCallback, useMemo } from 'react';",
+      "hooks": {
+        "state": "import { useState } from 'react';",
+        "effect": "import { useEffect } from 'react';",
+        "context": "import { useContext } from 'react';",
+        "ref": "import { useRef } from 'react';",
+        "callback": "import { useCallback } from 'react';",
+        "memo": "import { useMemo } from 'react';"
+      }
+    },
+    "routing": {
+      "router": "import { BrowserRouter, Routes, Route } from 'react-router-dom';",
+      "hooks": {
+        "navigation": "import { useNavigate } from 'react-router-dom';",
+        "params": "import { useParams } from 'react-router-dom';",
+        "location": "import { useLocation } from 'react-router-dom';"
+      }
+    },
+    "ui_components": {
+      "shadcn": {
+        "button": "import { Button } from '@/components/ui/button';",
+        "dialog": "import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';",
+        "form": "import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';",
+        "input": "import { Input } from '@/components/ui/input';",
+        "tabs": "import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';"
+      }
+    },
+    "contexts": {
+      "auth": "import { AuthContext } from '@/contexts/AuthContext';",
+      "theme": "import { ThemeContext } from '@/contexts/ThemeContext';"
+    },
+    "hooks": {
+      "custom": {
+        "mobile": "import { useMobile } from '@/hooks/use-mobile';",
+        "toast": "import { useToast } from '@/hooks/use-toast';"
+      }
+    },
+    "utils": {
+      "network": "import { networkUtils } from '@/utils/networkUtils';",
+      "password": "import { passwordUtils } from '@/utils/passwordUtils';"
+    }
+  },
+  "components": {
+    "auth": {
+      "LoginForm": {
+        "props": {
+          "onSuccess": "(user: User) => void",
+          "redirectPath": "string"
+        }
+      },
+      "RegisterForm": {
+        "props": {
+          "onSuccess": "(user: User) => void"
+        }
+      }
+    },
+    "device": {
+      "DeviceCard": {
+        "props": {
+          "device": "Device",
+          "onEdit": "(device: Device) => void",
+          "onDelete": "(id: string) => void"
+        }
+      },
+      "DeviceSettingsDialog": {
+        "props": {
+          "device": "Device",
+          "open": "boolean",
+          "onOpenChange": "(open: boolean) => void"
+        }
+      }
+    },
+    "layout": {
+      "Layout": {
+        "props": {
+          "children": "React.ReactNode"
+        }
+      }
+    }
+  },
+  "types": {
+    "User": {
+      "interface": "interface User { id: string; username: string; email: string; role: string; }",
+      "context": "interface AuthContextType { user: User | null; login: (credentials: LoginCredentials) => Promise<void>; logout: () => void; }"
+    },
+    "Device": {
+      "interface": "interface Device { id: string; name: string; type: string; status: string; settings: DeviceSettings; }",
+      "settings": "interface DeviceSettings { general: GeneralSettings; power: PowerSettings; advanced: AdvancedSettings; }"
+    },
+    "Forms": {
+      "LoginCredentials": "interface LoginCredentials { email: string; password: string; }",
+      "RegisterData": "interface RegisterData { username: string; email: string; password: string; confirmPassword: string; }"
+    }
+  },
+  "api": {
+    "endpoints": {
+      "auth": {
+        "login": "POST /api/auth/login",
+        "register": "POST /api/auth/register",
+        "logout": "POST /api/auth/logout"
+      },
+      "devices": {
+        "list": "GET /api/devices",
+        "create": "POST /api/devices",
+        "update": "PUT /api/devices/:id",
+        "delete": "DELETE /api/devices/:id"
+      },
+      "users": {
+        "profile": "GET /api/users/profile",
+        "update": "PUT /api/users/profile"
+      }
+    }
+  },
+  "styles": {
+    "tailwind": {
+      "layout": {
+        "container": "container mx-auto px-4",
+        "flex": "flex items-center justify-between",
+        "grid": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+      },
+      "components": {
+        "card": "rounded-lg shadow-md p-4",
+        "button": "px-4 py-2 rounded-md",
+        "input": "w-full rounded-md border border-gray-300 px-3 py-2"
+      },
+      "responsive": {
+        "mobile": "sm:",
+        "tablet": "md:",
+        "desktop": "lg:",
+        "wide": "xl:"
+      }
+    }
+  },
+  "common_patterns": {
+    "forms": {
+      "controlled": "const [value, setValue] = useState(''); ... <input value={value} onChange={(e) => setValue(e.target.value)} />;",
+      "uncontrolled": "const inputRef = useRef<HTMLInputElement>(null); ... <input ref={inputRef} />;"
+    },
+    "data_fetching": {
+      "useEffect": "useEffect(() => { const fetchData = async () => { ... }; fetchData(); }, []);",
+      "error_handling": "try { ... } catch (error) { toast({ title: 'Error', description: error.message }); }"
+    },
+    "context": {
+      "provider": "export const MyProvider = ({ children }: { children: React.ReactNode }) => { ... };",
+      "consumer": "const value = useContext(MyContext);"
+    }
+  }
+}

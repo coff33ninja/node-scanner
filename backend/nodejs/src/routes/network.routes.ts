@@ -1,20 +1,32 @@
-import { Router } from 'express';
-import { authMiddleware } from '@/middleware/auth.middleware';
-import { NetworkController } from '@/controllers/network.controller';
+import { Router, Request, Response } from 'express';
+import { authenticateJWT } from '../middleware/auth.middleware';
+import * as networkController from '../controllers/network.controller';
 
 const router = Router();
-const networkController = new NetworkController();
 
-// Network scanning routes
-router.get('/scan', authMiddleware, networkController.scanNetwork);
+// Wrap controller methods to handle type conversion
+router.get('/scan', authenticateJWT, (req: Request, res: Response) => 
+  networkController.scanNetwork(req as any, res)
+);
 
-// WOL routes
-router.post('/wake', authMiddleware, networkController.wakeDevice);
+router.post('/wake', authenticateJWT, (req: Request, res: Response) => 
+  networkController.wakeDevice(req as any, res)
+);
 
-// Device management
-router.get('/devices', authMiddleware, networkController.getDevices);
-router.post('/devices', authMiddleware, networkController.addDevice);
-router.put('/devices/:id', authMiddleware, networkController.updateDevice);
-router.delete('/devices/:id', authMiddleware, networkController.deleteDevice);
+router.get('/devices', authenticateJWT, (req: Request, res: Response) => 
+  networkController.getDevices(req as any, res)
+);
 
-export { router as networkRoutes };
+router.post('/devices', authenticateJWT, (req: Request, res: Response) => 
+  networkController.addDevice(req as any, res)
+);
+
+router.put('/devices/:id', authenticateJWT, (req: Request, res: Response) => 
+  networkController.updateDevice(req as any, res)
+);
+
+router.delete('/devices/:id', authenticateJWT, (req: Request, res: Response) => 
+  networkController.deleteDevice(req as any, res)
+);
+
+export default router;

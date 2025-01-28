@@ -1,51 +1,28 @@
 import express from 'express';
 import cors from 'cors';
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import { errorHandler } from '@/middleware/errorHandler';
-import { authRoutes } from './routes/auth.routes';
-import { userRoutes } from './routes/user.routes';
-import { networkRoutes } from './routes/network.routes';
-import { rateLimit } from 'express-rate-limit';
-import helmet from 'helmet';
+import { errorHandler } from './middleware/errorHandler';
+import userRoutes from './routes/user.routes';
+import networkRoutes from './routes/network.routes';
+import './config/database'; // This will initialize the database
 
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 5000;
-
-// Security middleware
-app.use(helmet());
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-  credentials: true
-}));
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
-});
-app.use(limiter);
+const port = process.env.PORT || 3000;
 
 // Middleware
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/network', networkRoutes);
 
 // Error handling
 app.use(errorHandler);
 
-// Database connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/wol')
-  .then(() => console.log('MongoDB connected successfully'))
-  .catch(err => console.error('MongoDB connection error:', err));
-
 // Start server
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+    console.log(`Server is running on port ${port}`);
 });

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { User } from '@/models/User';
+import { User, IUser } from '@/models/user.model';
+import mongoose from 'mongoose';
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
@@ -13,7 +14,12 @@ export const getAllUsers = async (req: Request, res: Response) => {
 
 export const getUserProfile = async (req: Request, res: Response) => {
   try {
-    const user = await User.findById(req.user?.id).select('-password');
+    const userId = (req.user as IUser)?._id;
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    
+    const user = await User.findById(userId).select('-password');
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -26,8 +32,13 @@ export const getUserProfile = async (req: Request, res: Response) => {
 
 export const updateUserProfile = async (req: Request, res: Response) => {
   try {
+    const userId = (req.user as IUser)?._id;
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
     const { name, email, avatarUrl } = req.body;
-    const user = await User.findById(req.user?.id);
+    const user = await User.findById(userId);
     
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -39,7 +50,7 @@ export const updateUserProfile = async (req: Request, res: Response) => {
 
     await user.save();
     
-    const updatedUser = await User.findById(user.id).select('-password');
+    const updatedUser = await User.findById(user._id).select('-password');
     res.json(updatedUser);
   } catch (error) {
     console.error('Error updating user profile:', error);

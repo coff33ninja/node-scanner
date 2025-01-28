@@ -1,31 +1,21 @@
 import { Request, Response, NextFunction } from 'express';
-import passport from 'passport';
+import jwt from 'jsonwebtoken';
 
-export const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
-  passport.authenticate('jwt', { session: false }, (err: any, user: any, info: any) => {
-    if (err) {
-      return next(err);
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_here';
+
+export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        
+        if (!token) {
+            return res.status(401).json({ message: 'Authentication required' });
+        }
+
+        const decoded = jwt.verify(token, JWT_SECRET);
+        (req as any).user = decoded;
+        
+        next();
+    } catch (error) {
+        res.status(401).json({ message: 'Invalid or expired token' });
     }
-    if (!user) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-    req.user = user;
-    next();
-  })(req, res, next);
-};
-
-export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
-  if (req.user && (req.user as any).role === 'admin') {
-    next();
-  } else {
-    res.status(403).json({ message: 'Access denied' });
-  }
-};
-
-export const isModerator = (req: Request, res: Response, next: NextFunction) => {
-  if (req.user && ['admin', 'moderator'].includes((req.user as any).role)) {
-    next();
-  } else {
-    res.status(403).json({ message: 'Access denied' });
-  }
 };

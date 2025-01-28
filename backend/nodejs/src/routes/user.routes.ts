@@ -1,11 +1,14 @@
-import { Router } from 'express';
-import { getAllUsers, getUserProfile, updateUserProfile } from '@/controllers/user.controller';
-import { authMiddleware } from '@/middleware/auth.middleware';
+import express from 'express';
+import { AuthController } from '../controllers/auth.controller';
+import { authMiddleware } from '../middleware/auth.middleware';
 
-const router = Router();
+const router = express.Router();
 
-router.get('/', authMiddleware, getAllUsers);
-router.get('/profile', authMiddleware, getUserProfile);
-router.put('/profile', authMiddleware, updateUserProfile);
+// Public routes
+router.post('/register', AuthController.register);
+router.post('/login', AuthController.login);
 
-export const userRoutes = router;
+// Protected routes
+router.get('/profile', authMiddleware, AuthController.getProfile);
+
+export default router;

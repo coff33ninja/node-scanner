@@ -1,5 +1,5 @@
 export interface DBUser {
-  id: string;
+  _id: string;  // Changed from id to _id to match MongoDB
   username: string;
   email: string;
   name: string;
@@ -7,12 +7,12 @@ export interface DBUser {
   lastActive: string;
   passwordHash: string;
   avatarUrl?: string;
-  passwordChanged: boolean;  // Added this property
+  passwordChanged: boolean;
 }
 
 class DatabaseService {
   private dbName = 'userAuthDB';
-  private dbVersion = 1;
+  private dbVersion = 2;  // Increased version to trigger database upgrade
   private db: IDBDatabase | null = null;
 
   async init(): Promise<void> {
@@ -27,15 +27,22 @@ class DatabaseService {
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains('users')) {
-          const store = db.createObjectStore('users', { keyPath: 'id' });
-          store.createIndex('username', 'username', { unique: true });
-          store.createIndex('email', 'email', { unique: true });
+
+        // Delete old stores if they exist
+        if (db.objectStoreNames.contains('users')) {
+          db.deleteObjectStore('users');
         }
-        if (!db.objectStoreNames.contains('devices')) {
-          const store = db.createObjectStore('devices', { keyPath: 'id' });
-          store.createIndex('userId', 'userId');
+        if (db.objectStoreNames.contains('devices')) {
+          db.deleteObjectStore('devices');
         }
+
+        // Create new stores with _id as keyPath
+        const userStore = db.createObjectStore('users', { keyPath: '_id' });
+        userStore.createIndex('username', 'username', { unique: true });
+        userStore.createIndex('email', 'email', { unique: true });
+
+        const deviceStore = db.createObjectStore('devices', { keyPath: '_id' });
+        deviceStore.createIndex('userId', 'userId');
       };
     });
   }
@@ -57,9 +64,6 @@ class DatabaseService {
         console.error('Failed to add user:', request.error);
         resolve(false);
       };
-
-      request.onsuccess = () => resolve(true);
-      request.onerror = () => resolve(false);
     });
   }
 
@@ -78,14 +82,14 @@ class DatabaseService {
     });
   }
 
-  async updateUser(user: Partial<DBUser> & { id: string }): Promise<boolean> {
+  async updateUser(user: Partial<DBUser> & { _id: string }): Promise<boolean> {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['users'], 'readwrite');
       const store = transaction.objectStore('users');
 
-      const getRequest = store.get(user.id);
+      const getRequest = store.get(user._id);
 
       getRequest.onsuccess = () => {
         const existingUser = getRequest.result;
@@ -145,7 +149,7 @@ class DatabaseService {
         const user = request.result;
         if (user) {
           const { passwordHash, ...userData } = user;
-          resolve(userData);
+          resolve(userData as DBUser);
         } else {
           resolve(null);
         }
@@ -154,7 +158,7 @@ class DatabaseService {
     });
   }
 
-  async getUserDevices(userId: string): Promise<any[]> {
+  async getUserDevices(userId: string): Promise<unknown[]> {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
