@@ -15,7 +15,7 @@ Before running the project, make sure you have the following installed:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/wol.git
+git clone https://github.com/coff33ninja/wol.git
 cd wol
 ```
 
