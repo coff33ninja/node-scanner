@@ -140,7 +140,7 @@ export class NetworkScanner {
                 });
               }
             } catch (err) {
-              console.error(`Error scanning ${ip}:`, err);
+              console.error('Error scanning %s:', ip, err);
             }
             resolve();
           })
