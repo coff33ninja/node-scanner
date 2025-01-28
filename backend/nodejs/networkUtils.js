@@ -25,7 +25,7 @@ export class NetworkScanner {
 
       exec(cmd, (error, stdout) => {
         if (error) {
-          console.error(`Error getting MAC for ${ip}:`, error);
+          console.error('Error getting MAC for %s:', ip, error);
           resolve(null);
           return;
         }
