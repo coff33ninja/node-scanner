@@ -1,10 +1,44 @@
 import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
-import jwt from 'jsonwebtoken';
-import { User, IUser } from '../models/user.model';
+import { User, UserModel } from '../models/user.model';
 import { errorHandler } from '../middleware/errorHandler';
+import * as argon2 from 'argon2';
+import session from 'express-session';
+import Redis from 'ioredis';
+import connectRedis from 'connect-redis';
 
 const router = Router();
+
+// Redis client setup
+const redis = new Redis({
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379'),
+  password: process.env.REDIS_PASSWORD,
+  // Enable TLS if using Redis Cloud or similar services
+  tls: process.env.REDIS_TLS === 'true' ? {} : undefined
+});
+
+// Initialize Redis store
+const RedisStore = connectRedis(session);
+
+// Session configuration
+router.use(session({
+  store: new RedisStore({
+    client: redis,
+    prefix: 'alttab:sess:', // Prefix for session keys in Redis
+  }),
+  secret: process.env.SESSION_SECRET || 'your_session_secret_here',
+  name: 'sessionId', // Custom cookie name
+  resave: false,
+  saveUninitialized: false,
+  rolling: true, // Refresh session with each request
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'lax'
+  }
+}));
 
 // Registration validation middleware
 const registerValidation = [
@@ -23,18 +57,21 @@ const registerValidation = [
     .withMessage('Password must be at least 8 characters long')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
     .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
-  body('name')
-    .trim()
-    .isLength({ min: 2 })
-    .withMessage('Name must be at least 2 characters long'),
 ];
 
 interface RegisterRequestBody {
   username: string;
   email: string;
   password: string;
-  name: string;
-  language?: string;
+}
+
+// Custom type for session data
+declare module 'express-session' {
+  interface SessionData {
+    userId: number;
+    username: string;
+    email: string;
+  }
 }
 
 // Registration route
@@ -48,122 +85,130 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-    const { username, email, password, name } = req.body;
+      const { username, email, password } = req.body;
 
-    const existingUser = await User.findOne({
-      $or: [{ username }, { email }],
-    });
+      // Check if user already exists
+      const existingUser = UserModel.findByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: 'Email already exists' });
+      }
 
-    if (existingUser) {
-      return res.status(400).json({ message: 'Username or email already exists' });
+      // Hash password
+      const hashedPassword = await argon2.hash(password);
+
+      // Create user
+      const result = UserModel.create({
+        username,
+        email,
+        password: hashedPassword,
+      });
+
+      const user = UserModel.findById(result.lastInsertRowid as number);
+      if (!user) {
+        throw new Error('Failed to create user');
+      }
+
+      // Set user session
+      req.session.userId = user.id!;
+      req.session.username = user.username;
+      req.session.email = user.email;
+
+      // Remove password from user object before sending response
+      const { password: _, ...userData } = user;
+
+      res.status(201).json({
+        user: userData,
+        message: 'Registration successful'
+      });
+    } catch (error) {
+      console.error('Registration error:', error);
+      res.status(500).json({ message: 'Server error during registration' });
     }
-
-    const user = await User.create({
-      username,
-      email,
-      password,
-      name,
-      preferences: {
-        language: req.body.language || 'en',
-        theme: 'system',
-        notifications: true,
-      },
-    });
-
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '1h' }
-    );
-
-    const refreshToken = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key',
-      { expiresIn: '7d' }
-    );
-
-    const userData = {
-      id: user._id,
-      username: user.username,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      lastActive: user.lastActive,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-      isActive: user.isActive,
-      preferences: user.preferences,
-    };
-
-    res.status(201).json({
-      user: userData,
-      token,
-      refreshToken,
-    });
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ message: 'Server error during registration' });
   }
-});
+);
 
 interface LoginRequestBody {
-  username: string;
+  email: string;
   password: string;
 }
 
 // Login route
 router.post('/login', async (req: Request<object, object, LoginRequestBody>, res: Response) => {
   try {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
 
-    if (!username || !password) {
-      return res.status(400).json({ message: 'Username and password are required' });
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    const user = await User.findOne({ username });
+    const user = UserModel.findByEmail(email);
     if (!user) {
-      return res.status(401).json({ message: 'Invalid username or password' });
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await argon2.verify(user.password, password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid username or password' });
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '1h' }
-    );
+    // Set user session
+    req.session.userId = user.id!;
+    req.session.username = user.username;
+    req.session.email = user.email;
 
-    const refreshToken = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key',
-      { expiresIn: '7d' }
-    );
-
-    const userData = {
-      id: user._id,
-      username: user.username,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      lastActive: user.lastActive,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-      isActive: user.isActive,
-      preferences: user.preferences,
-    };
+    // Remove password from user object before sending response
+    const { password: _, ...userData } = user;
 
     res.status(200).json({
       user: userData,
-      token,
-      refreshToken,
+      message: 'Login successful'
     });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Server error during login' });
   }
+});
+
+// Logout route
+router.post('/logout', (req: Request, res: Response) => {
+  const sessionId = req.session.id;
+
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ message: 'Error logging out' });
+    }
+
+    // Explicitly delete session from Redis
+    redis.del(`alttab:sess:${sessionId}`).catch(console.error);
+
+    res.clearCookie('sessionId');
+    res.json({ message: 'Logged out successfully' });
+  });
+});
+
+// Check auth status route
+router.get('/check-auth', (req: Request, res: Response) => {
+  if (req.session?.userId) {
+    res.json({
+      isAuthenticated: true,
+      user: {
+        id: req.session.userId,
+        username: req.session.username,
+        email: req.session.email
+      }
+    });
+  } else {
+    res.json({ isAuthenticated: false });
+  }
+});
+
+// Session cleanup on server shutdown
+process.on('SIGTERM', () => {
+  redis.quit();
+});
+
+process.on('SIGINT', () => {
+  redis.quit();
 });
 
 export const authRoutes = router;

@@ -3,7 +3,7 @@ import cors from 'cors';
 import { serverConfig } from './config/server.config';
 import { setupPassport } from './config/passport';
 import { errorHandler } from './middleware/errorHandler';
-import authRoutes from './routes/auth.routes';
+import { authRoutes } from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import networkRoutes from './routes/network.routes';
 import databaseRoutes from './routes/database.routes';

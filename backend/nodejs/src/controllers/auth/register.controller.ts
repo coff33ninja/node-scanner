@@ -1,9 +1,13 @@
 import { Request, Response } from 'express';
-import bcrypt from 'bcryptjs';
+import * as argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
 import { UserModel } from '../../models/user.model';
 import { registerSchema } from '../../validators/auth.validator';
 import { ZodError } from 'zod';
+
+interface JWTPayload {
+    userId: number;
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_here';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
@@ -20,8 +24,7 @@ export const registerController = async (req: Request, res: Response) => {
             });
         }
 
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(validatedData.password, salt);
+        const hashedPassword = await argon2.hash(validatedData.password);
 
         const result = UserModel.create({
             username: validatedData.username,
@@ -29,20 +32,25 @@ export const registerController = async (req: Request, res: Response) => {
             password: hashedPassword
         });
 
+        const newUser = UserModel.findById(result.lastInsertRowid as number);
+        if (!newUser) {
+            throw new Error('Failed to create user');
+        }
+
+        const payload: JWTPayload = { userId: newUser.id! };
         const token = jwt.sign(
-            { id: result.lastInsertRowid },
+            payload,
             JWT_SECRET,
             { expiresIn: JWT_EXPIRES_IN }
         );
 
+        // Remove password from response
+        const { password: _, ...userData } = newUser;
+
         res.status(201).json({
             status: 'success',
             data: {
-                user: {
-                    id: result.lastInsertRowid,
-                    username: validatedData.username,
-                    email: validatedData.email
-                },
+                user: userData,
                 token
             }
         });
