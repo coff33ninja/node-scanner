@@ -4,6 +4,16 @@ A web application for managing and waking devices on your network using Wake-on-
 
 ---
 
+## Default Admin Credentials (Development Only)
+
+⚠️ **WARNING: These are default development credentials. Change them before deploying to production!**
+
+```
+Username: admin
+Password: abcd1234!
+Email: admin@abcd.1234
+```
+
 ## Prerequisites
 
 Before running the project, make sure you have the following installed:
@@ -82,7 +92,16 @@ The frontend should now be running on `http://localhost:3000`.
 
 ## Usage
 
-### 1. Registration
+### 1. Initial Setup
+
+1. After installation, use the default admin credentials to log in:
+   - Username: `admin`
+   - Password: `abcd1234!`
+   - Email: `admin@abcd.1234`
+2. **IMPORTANT**: Immediately change these credentials after first login
+3. Create additional user accounts as needed
+
+### 2. Registration
 
 1. Open `http://localhost:3000` in your browser.
 2. Click on the **Register** link.
@@ -94,14 +113,14 @@ The frontend should now be running on `http://localhost:3000`.
    - Accept terms and conditions
 4. Submit the form.
 
-### 2. Login
+### 3. Login
 
 1. Go to the login page.
 2. Enter your username and password.
 3. Optionally check **Remember me** to stay logged in.
 4. Click **Login**.
 
-### 3. Account Security
+### 4. Account Security
 
 - After **5 failed login attempts**, your account will be temporarily locked for 15 minutes.
 - Use a strong password that includes:
