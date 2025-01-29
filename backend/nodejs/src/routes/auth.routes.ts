@@ -1,11 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import { User, UserModel } from '../models/user.model';
-import { errorHandler } from '../middleware/errorHandler';
 import * as argon2 from 'argon2';
-import session from 'express-session';
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import connectRedis from 'connect-redis';
+import session from 'express-session';
 
 const router = Router();
 
@@ -13,25 +12,33 @@ const router = Router();
 const redis = new Redis({
   host: process.env.REDIS_HOST || 'localhost',
   port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD,
-  // Enable TLS if using Redis Cloud or similar services
+  password: process.env.REDIS_PASSWORD || undefined,
   tls: process.env.REDIS_TLS === 'true' ? {} : undefined
+});
+
+redis.on('connect', () => {
+  console.log('Connected to Redis');
+});
+
+redis.on('error', (err) => {
+  console.error('Redis connection error:', err);
 });
 
 // Initialize Redis store
 const RedisStore = connectRedis(session);
+const redisStore = new RedisStore({
+  client: redis,
+  prefix: 'alttab:sess:',
+});
 
 // Session configuration
 router.use(session({
-  store: new RedisStore({
-    client: redis,
-    prefix: 'alttab:sess:', // Prefix for session keys in Redis
-  }),
+  store: redisStore,
   secret: process.env.SESSION_SECRET || 'your_session_secret_here',
-  name: 'sessionId', // Custom cookie name
+  name: 'sessionId',
   resave: false,
   saveUninitialized: false,
-  rolling: true, // Refresh session with each request
+  rolling: true,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
@@ -61,6 +68,11 @@ const registerValidation = [
 
 interface RegisterRequestBody {
   username: string;
+  email: string;
+  password: string;
+}
+
+interface LoginRequestBody {
   email: string;
   password: string;
 }
@@ -126,11 +138,6 @@ router.post(
     }
   }
 );
-
-interface LoginRequestBody {
-  email: string;
-  password: string;
-}
 
 // Login route
 router.post('/login', async (req: Request<object, object, LoginRequestBody>, res: Response) => {
