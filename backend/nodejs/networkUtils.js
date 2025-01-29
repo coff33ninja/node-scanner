@@ -2,6 +2,7 @@ import dgram from 'dgram';
 import net from 'net';
 import { exec } from 'child_process';
 import os from 'os';
+import { spawn } from 'child_process';
 
 export class NetworkScanner {
   constructor() {
@@ -45,6 +46,21 @@ export class NetworkScanner {
   }
 
   async scanNetwork(ipRange) {
+    try {
+      console.log('Attempting Node.js network scan...');
+      const nodeResults = await this.scanWithNode(ipRange);
+      if (nodeResults && nodeResults.length > 0) {
+        return nodeResults;
+      }
+      console.log('Node.js scan failed or found no devices, falling back to Python scanner');
+      return await this.scanWithPython(ipRange);
+    } catch (error) {
+      console.error('Network scan failed:', error);
+      throw new Error('Network scan failed: ' + error.message);
+    }
+  }
+
+  async scanWithNode(ipRange) {
     return new Promise(async (resolve) => {
       const devices = [];
       const [baseIp, subnet] = ipRange.split('/');
@@ -149,19 +165,36 @@ export class NetworkScanner {
 
       // Wait for all detailed scans to complete
       await Promise.all(scanPromises);
+      resolve(devices);
+    });
+  }
 
-      // Call the Python scanner for devices not detected
-      const pythonScanCommand = `python backend/python/network_utils.py ${ipRange}`;
-      exec(pythonScanCommand, (error, stdout, stderr) => {
-        if (error) {
-          console.error(`Error executing Python scanner: ${error}`);
-          return;
-        }
-        const pythonDevices = JSON.parse(stdout);
-        devices.push(...pythonDevices);
+  async scanWithPython(ipRange) {
+    return new Promise((resolve, reject) => {
+      const pythonProcess = spawn('python', ['backend/python/network_utils.py', ipRange]);
+      let outputData = '';
+      let errorData = '';
+
+      pythonProcess.stdout.on('data', (data) => {
+        outputData += data.toString();
       });
 
-      resolve(devices);
+      pythonProcess.stderr.on('data', (data) => {
+        errorData += data.toString();
+      });
+
+      pythonProcess.on('close', (code) => {
+        if (code !== 0) {
+          reject(new Error(`Python scanner failed: ${errorData}`));
+          return;
+        }
+        try {
+          const devices = JSON.parse(outputData);
+          resolve(devices);
+        } catch (error) {
+          reject(new Error('Failed to parse Python scanner output'));
+        }
+      });
     });
   }
 

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Shield, Download, Trash2, LogOut } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useState } from "react";
+import { BackendStatus } from "@/components/BackendStatus";
 
 interface SecurityControlsProps {
   currentUser: {
@@ -67,6 +68,16 @@ export const SecurityControls = ({
             <option value={60}>1 hour</option>
             <option value={120}>2 hours</option>
           </select>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label>Backend Connection</Label>
+            <p className="text-sm text-muted-foreground">
+              Control backend connectivity
+            </p>
+          </div>
+          <BackendStatus showControls={true} />
         </div>
 
         <Button

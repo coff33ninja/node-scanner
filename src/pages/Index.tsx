@@ -2,15 +2,17 @@ import Layout from "../components/Layout";
 import { DeviceCard } from "../components/DeviceCard";
 import { AddDeviceDialog } from "../components/AddDeviceDialog";
 import { DeviceStats } from "../components/DeviceStats";
+import { NetworkDeviceList } from "../components/NetworkDeviceList";
 import { useEffect, useState } from "react";
 import { NetworkDevice } from "../utils/networkUtils";
-import { useToast } from "../components/ui/use-toast";
+import { useToast } from "../hooks/use-toast";
 import axios from 'axios';
 
 const STORAGE_KEY = 'network-devices';
 
 const Index = () => {
   const [devices, setDevices] = useState<NetworkDevice[]>([]);
+  const [scannedDevices, setScannedDevices] = useState<NetworkDevice[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -34,25 +36,15 @@ const Index = () => {
 
   useEffect(() => {
     const fetchDevices = async () => {
-      console.log("Fetching devices from API...");
       try {
         const response = await axios.get('/api/scan-network');
-        console.log("Response status:", response.status);
-        console.log("Response data:", response.data);
-        
         if (Array.isArray(response.data)) {
-          setDevices(prevDevices => {
-            const newDevices = response.data.filter(newDevice => 
-              !prevDevices.some(existingDevice => existingDevice.ip === newDevice.ip)
-            );
-            return [...prevDevices, ...newDevices];
-          });
+          setScannedDevices(response.data);
         } else {
           console.warn("API response is not an array:", response.data);
         }
       } catch (error) {
         console.error('Error fetching devices:', error);
-        // Don't show error toast for network errors as they're expected when backend is not available
         if (error.message !== "Network Error") {
           toast({
             title: "Error",
@@ -64,6 +56,8 @@ const Index = () => {
     };
 
     fetchDevices();
+    const interval = setInterval(fetchDevices, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
   }, [toast]);
 
   useEffect(() => {
@@ -112,6 +106,10 @@ const Index = () => {
       </div>
 
       <DeviceStats devices={devices} />
+      
+      <div className="mb-8">
+        <NetworkDeviceList devices={scannedDevices} onAddDevice={handleAddDevice} />
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {Array.isArray(devices) && devices.map((device: NetworkDevice) => (

@@ -24,29 +24,11 @@ export interface AuthContextType {
   isFirstRun: boolean;
   isLoading: boolean;
   error: string | null;
-  register: (data: {
-    username: string;
-    password: string;
-    email: string;
-    name: string;
-    language?: string;
-  }) => Promise<boolean>;
-  login: (
-    username: string,
-    password: string,
-    remember?: boolean
-  ) => Promise<boolean>;
+  register: (data: RegisterData) => Promise<boolean>;
+  login: (username: string, password: string, remember?: boolean) => Promise<boolean>;
   logout: () => Promise<void>;
-  updateProfile: (data: {
-    name?: string;
-    email?: string;
-    avatarUrl?: string;
-    preferences?: User['preferences'];
-  }) => Promise<boolean>;
-  changePassword: (
-    currentPassword: string,
-    newPassword: string
-  ) => Promise<boolean>;
+  updateProfile: (data: UpdateProfileData) => Promise<boolean>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
   enableTwoFactor: () => Promise<{ success: boolean; qrCode?: string }>;
   disableTwoFactor: () => Promise<boolean>;
   verifyTwoFactor: (code: string) => Promise<boolean>;
@@ -54,4 +36,19 @@ export interface AuthContextType {
   refreshToken: () => Promise<boolean>;
   deleteAccount: (password: string) => Promise<boolean>;
   exportData: () => Promise<any>;
+}
+
+export interface RegisterData {
+  username: string;
+  password: string;
+  email: string;
+  name: string;
+  language?: string;
+}
+
+export interface UpdateProfileData {
+  name?: string;
+  email?: string;
+  avatarUrl?: string;
+  preferences?: User['preferences'];
 }
