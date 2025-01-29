@@ -160,4 +160,30 @@ The frontend should now be running on `http://localhost:3000`.
 - `frontend/src/pages/`: Page components for routing.
 - `frontend/src/services/`: Services for API interactions.
 
+## Project Structure
+
+### Reference Files
+The project includes comprehensive reference files that document the structure and patterns used throughout the codebase:
+
+- `backend/nodejs/src/reference.json`: Contains backend patterns, imports, and type definitions
+- `src/reference.json`: Contains frontend patterns, component structures, and common code snippets
+
+These files serve as documentation and guidelines for:
+- Import patterns
+- Type definitions
+- Controller patterns
+- Middleware configurations
+- Database operations
+- Component structures
+- Common code patterns
+- Error handling
+- Security implementations
+
+Developers should consult these files when:
+- Adding new features
+- Following project patterns
+- Understanding type definitions
+- Implementing security measures
+- Setting up new components
+
 ---
