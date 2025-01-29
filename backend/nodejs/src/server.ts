@@ -1,21 +1,29 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
+import { serverConfig } from './config/server.config';
+import { setupPassport } from './config/passport';
 import { errorHandler } from './middleware/errorHandler';
+import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import networkRoutes from './routes/network.routes';
-import './config/database'; // This will initialize the database
-
-dotenv.config();
+import passport from 'passport';
+import './config/database';
 
 const app = express();
-const port = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: serverConfig.corsOrigin,
+  credentials: true
+}));
 app.use(express.json());
+app.use(passport.initialize());
+
+// Setup passport
+setupPassport(passport);
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/network', networkRoutes);
 
@@ -23,6 +31,8 @@ app.use('/api/network', networkRoutes);
 app.use(errorHandler);
 
 // Start server
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+app.listen(serverConfig.port, () => {
+  console.log(`Server running on port ${serverConfig.port} in ${serverConfig.nodeEnv} mode`);
 });
+
+export default app;

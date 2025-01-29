@@ -4,6 +4,16 @@ A web application for managing and waking devices on your network using Wake-on-
 
 ---
 
+## Default Admin Credentials (Development Only)
+
+⚠️ **WARNING: These are default development credentials. Change them before deploying to production!**
+
+```
+Username: admin
+Password: abcd1234!
+Email: admin@abcd.1234
+```
+
 ## Prerequisites
 
 Before running the project, make sure you have the following installed:
@@ -82,7 +92,16 @@ The frontend should now be running on `http://localhost:3000`.
 
 ## Usage
 
-### 1. Registration
+### 1. Initial Setup
+
+1. After installation, use the default admin credentials to log in:
+   - Username: `admin`
+   - Password: `abcd1234!`
+   - Email: `admin@abcd.1234`
+2. **IMPORTANT**: Immediately change these credentials after first login
+3. Create additional user accounts as needed
+
+### 2. Registration
 
 1. Open `http://localhost:3000` in your browser.
 2. Click on the **Register** link.
@@ -94,14 +113,14 @@ The frontend should now be running on `http://localhost:3000`.
    - Accept terms and conditions
 4. Submit the form.
 
-### 2. Login
+### 3. Login
 
 1. Go to the login page.
 2. Enter your username and password.
 3. Optionally check **Remember me** to stay logged in.
 4. Click **Login**.
 
-### 3. Account Security
+### 4. Account Security
 
 - After **5 failed login attempts**, your account will be temporarily locked for 15 minutes.
 - Use a strong password that includes:
@@ -159,5 +178,31 @@ The frontend should now be running on `http://localhost:3000`.
 - `frontend/src/components/`: React components.
 - `frontend/src/pages/`: Page components for routing.
 - `frontend/src/services/`: Services for API interactions.
+
+## Project Structure
+
+### Reference Files
+The project includes comprehensive reference files that document the structure and patterns used throughout the codebase:
+
+- `backend/nodejs/src/reference.json`: Contains backend patterns, imports, and type definitions
+- `src/reference.json`: Contains frontend patterns, component structures, and common code snippets
+
+These files serve as documentation and guidelines for:
+- Import patterns
+- Type definitions
+- Controller patterns
+- Middleware configurations
+- Database operations
+- Component structures
+- Common code patterns
+- Error handling
+- Security implementations
+
+Developers should consult these files when:
+- Adding new features
+- Following project patterns
+- Understanding type definitions
+- Implementing security measures
+- Setting up new components
 
 ---

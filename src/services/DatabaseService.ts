@@ -8,6 +8,15 @@ export interface DBUser {
   passwordHash: string;
   avatarUrl?: string;
   passwordChanged: boolean;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+  lastLoginIp?: string;
+  preferences?: {
+    theme: 'light' | 'dark' | 'system';
+    notifications: boolean;
+    language: string;
+  };
 }
 
 class DatabaseService {
@@ -40,9 +49,11 @@ class DatabaseService {
         const userStore = db.createObjectStore('users', { keyPath: 'id' });
         userStore.createIndex('username', 'username', { unique: true });
         userStore.createIndex('email', 'email', { unique: true });
-
-        const deviceStore = db.createObjectStore('devices', { keyPath: 'id' });
-        deviceStore.createIndex('userId', 'userId');
+        
+        // Add indexes for new fields
+        userStore.createIndex('createdAt', 'createdAt');
+        userStore.createIndex('updatedAt', 'updatedAt');
+        userStore.createIndex('isActive', 'isActive');
       };
     });
   }
@@ -50,14 +61,22 @@ class DatabaseService {
   async addUser(user: DBUser): Promise<boolean> {
     if (!this.db) await this.init();
 
+    // Ensure required fields are present
+    const newUser: DBUser = {
+      ...user,
+      createdAt: user.createdAt || new Date().toISOString(),
+      updatedAt: user.updatedAt || new Date().toISOString(),
+      isActive: user.isActive ?? true,
+    };
+
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['users'], 'readwrite');
       const store = transaction.objectStore('users');
 
-      console.log('Adding user to database:', user);
-      const request = store.add(user);
+      console.log('Adding user to database:', newUser);
+      const request = store.add(newUser);
       request.onsuccess = () => {
-        console.log('User added successfully:', user);
+        console.log('User added successfully:', newUser);
         resolve(true);
       };
       request.onerror = () => {

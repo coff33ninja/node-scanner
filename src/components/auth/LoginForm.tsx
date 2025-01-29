@@ -1,15 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, LogIn, AlertTriangle } from "lucide-react";
+import { LogIn, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-import { Checkbox } from "@/components/ui/checkbox";
-
-const MAX_LOGIN_ATTEMPTS = 5;
-const LOCKOUT_TIME = 15 * 60 * 1000; // 15 minutes in milliseconds
+import { LoginFields } from "./forms/LoginFields";
+import { useLoginAttempts } from "./hooks/useLoginAttempts";
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -18,40 +14,18 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-
   const [loginData, setLoginData] = useState({
     username: "",
     password: "",
   });
 
-  const [loginAttempts, setLoginAttempts] = useState(() => {
-    const stored = localStorage.getItem('loginAttempts');
-    return stored ? JSON.parse(stored) : { count: 0, timestamp: 0 };
-  });
-
-  useEffect(() => {
-    localStorage.setItem('loginAttempts', JSON.stringify(loginAttempts));
-  }, [loginAttempts]);
-
-  const isAccountLocked = () => {
-    if (loginAttempts.count >= MAX_LOGIN_ATTEMPTS) {
-      const timeElapsed = Date.now() - loginAttempts.timestamp;
-      if (timeElapsed < LOCKOUT_TIME) {
-        return true;
-      } else {
-        // Reset attempts after lockout period
-        setLoginAttempts({ count: 0, timestamp: 0 });
-        return false;
-      }
-    }
-    return false;
-  };
-
-  const getRemainingLockoutTime = () => {
-    const timeElapsed = Date.now() - loginAttempts.timestamp;
-    const remainingTime = Math.ceil((LOCKOUT_TIME - timeElapsed) / 1000 / 60);
-    return remainingTime;
-  };
+  const {
+    isAccountLocked,
+    getRemainingLockoutTime,
+    incrementAttempts,
+    resetAttempts,
+    attemptsRemaining,
+  } = useLoginAttempts();
 
   const handleLogin = async () => {
     try {
@@ -82,22 +56,14 @@ const LoginForm = () => {
           description: "Login successful!",
           variant: "default",
         });
-        // Reset login attempts on successful login
-        setLoginAttempts({ count: 0, timestamp: 0 });
+        resetAttempts();
         setTimeout(() => navigate("/"), 1500);
       } else {
-        // Increment failed attempts
-        const newAttempts = {
-          count: loginAttempts.count + 1,
-          timestamp: Date.now(),
-        };
-        setLoginAttempts(newAttempts);
-
-        const remainingAttempts = MAX_LOGIN_ATTEMPTS - newAttempts.count;
+        incrementAttempts();
         toast({
           title: "Login Failed",
-          description: remainingAttempts > 0
-            ? `Invalid username or password. ${remainingAttempts} attempts remaining.`
+          description: attemptsRemaining > 0
+            ? `Invalid username or password. ${attemptsRemaining} attempts remaining.`
             : "Account temporarily locked. Please try again later.",
           variant: "destructive",
         });
@@ -113,6 +79,10 @@ const LoginForm = () => {
     }
   };
 
+  const handleDataChange = (field: string, value: string) => {
+    setLoginData((prev) => ({ ...prev, [field]: value }));
+  };
+
   return (
     <div className="space-y-4">
       {isAccountLocked() && (
@@ -124,61 +94,16 @@ const LoginForm = () => {
         </div>
       )}
 
-      <div className="space-y-2">
-        <Label htmlFor="username">Username</Label>
-        <Input
-          id="username"
-          value={loginData.username}
-          onChange={(e) =>
-            setLoginData({ ...loginData, username: e.target.value })
-          }
-          placeholder="Enter your username"
-          disabled={isLoading || isAccountLocked()}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
-        <div className="relative">
-          <Input
-            id="password"
-            type={showPassword ? "text" : "password"}
-            value={loginData.password}
-            onChange={(e) =>
-              setLoginData({ ...loginData, password: e.target.value })
-            }
-            placeholder="Enter your password"
-            disabled={isLoading || isAccountLocked()}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2"
-            disabled={isLoading || isAccountLocked()}
-          >
-            {showPassword ? (
-              <EyeOff className="h-4 w-4 text-gray-500" />
-            ) : (
-              <Eye className="h-4 w-4 text-gray-500" />
-            )}
-          </button>
-        </div>
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="remember-me"
-          checked={rememberMe}
-          onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-          disabled={isLoading || isAccountLocked()}
-        />
-        <Label
-          htmlFor="remember-me"
-          className="text-sm cursor-pointer"
-        >
-          Remember me
-        </Label>
-      </div>
+      <LoginFields
+        loginData={loginData}
+        showPassword={showPassword}
+        rememberMe={rememberMe}
+        isLoading={isLoading}
+        isLocked={isAccountLocked()}
+        onDataChange={handleDataChange}
+        onShowPasswordChange={setShowPassword}
+        onRememberMeChange={setRememberMe}
+      />
 
       <Button
         onClick={handleLogin}

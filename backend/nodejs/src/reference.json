@@ -1,3 +1,4 @@
+{
   "imports": {
     "express": {
       "default": "express",
@@ -60,6 +61,22 @@
     "utils": {
       "logger": "import { logger } from '../utils/logger';",
       "network": "import { networkUtils } from '../utils/networkUtils';"
+    },
+    "sqlite": {
+      "default": "better-sqlite3",
+      "types": ["Database", "Statement"],
+      "usage": "import Database from 'better-sqlite3';",
+      "connection": {
+        "basic": "const db = new Database('database.sqlite');",
+        "withOptions": "const db = new Database('database.sqlite', { verbose: console.log });"
+      },
+      "operations": {
+        "select": "db.prepare('SELECT * FROM table').all();",
+        "insert": "db.prepare('INSERT INTO table (col) VALUES (?)').run(value);",
+        "update": "db.prepare('UPDATE table SET col = ? WHERE id = ?').run(value, id);",
+        "delete": "db.prepare('DELETE FROM table WHERE id = ?').run(id);",
+        "transaction": "db.transaction(() => { /* operations */ })();"
+      }
     }
   },
   "types": {
@@ -82,93 +99,44 @@
       }
     }
   },
-    "Response": {
-      "usage": "Response<T>",
-      "methods": {
-        "json": "res.json(data)",
-        "status": "res.status(code)",
-        "send": "res.send(data)",
-        "sendFile": "res.sendFile(path)"
-      }
-    },
-    "models": {
-      "schema": {
-        "basic": "new mongoose.Schema({ field: Type })",
-        "with_options": "new mongoose.Schema({ field: Type }, { timestamps: true })",
-        "exports": {
-          "named": "export const ModelName = mongoose.model('ModelName', schema);",
-          "interface": "export interface IModelName extends Document { /* properties */ }",
-          "type": "export type ModelDocument = Document & { /* properties */ }"
-        },
-        "imports": {
-          "model": "import { ModelName } from '../models/model.name';",
-          "interface": "import { IModelName } from '../models/model.name';",
-          "mongoose": "import mongoose, { Schema, Document, Model } from 'mongoose';"
-        }
-      }
+  "Response": {
+    "usage": "Response<T>",
+    "methods": {
+      "json": "res.json(data)",
+      "status": "res.status(code)",
+      "send": "res.send(data)",
+      "sendFile": "res.sendFile(path)"
     }
-      "User": {
-        "interface": "IUser",
-        "model": "UserModel",
-        "document": "UserDocument"
+  },
+  "models": {
+    "schema": {
+      "basic": "new mongoose.Schema({ field: Type })",
+      "with_options": "new mongoose.Schema({ field: Type }, { timestamps: true })",
+      "exports": {
+        "named": "export const ModelName = mongoose.model('ModelName', schema);",
+        "interface": "export interface IModelName extends Document { /* properties */ }",
+        "type": "export type ModelDocument = Document & { /* properties */ }"
       },
-      "Device": {
-        "interface": "IDevice",
-        "model": "DeviceModel",
-        "document": "DeviceDocument"
-      },
-      "Network": {
-        "interface": "INetwork",
-        "model": "NetworkModel",
-        "document": "NetworkDocument"
+      "imports": {
+        "model": "import { ModelName } from '../models/model.name';",
+        "interface": "import { IModelName } from '../models/model.name';",
+        "mongoose": "import mongoose, { Schema, Document, Model } from 'mongoose';"
       }
     }
   },
-  "middleware": {
-    "authentication": {
-      "jwt": {
-        "verify": "jwt.verify(token, secret)",
-        "error_handling": {
-          "no_token": "return res.status(401).json({ message: 'No token provided' });",
-          "invalid_token": "return res.status(403).json({ message: 'Invalid token' });"
-        }
-      },
-      "rate_limiting": {
-        "usage": "import rateLimit from 'express-rate-limit';",
-        "config": "{ windowMs: 15 * 60 * 1000, max: 100 }"
-      }
-    },
-    "validation": {
-      "body": "validateBody(schema)",
-      "params": "validateParams(schema)",
-      "query": "validateQuery(schema)"
-    }
+  "User": {
+    "interface": "IUser",
+    "model": "UserModel",
+    "document": "UserDocument"
   },
-  "error_handling": {
-    "custom_errors": {
-      "ApiError": "class ApiError extends Error",
-      "ValidationError": "class ValidationError extends Error",
-      "AuthenticationError": "class AuthenticationError extends Error"
-    },
-    "status_codes": {
-      "400": "Bad Request",
-      "401": "Unauthorized",
-      "403": "Forbidden",
-      "404": "Not Found",
-      "409": "Conflict",
-      "422": "Unprocessable Entity",
-      "429": "Too Many Requests",
-      "500": "Internal Server Error"
-    }
+  "Device": {
+    "interface": "IDevice",
+    "model": "DeviceModel",
+    "document": "DeviceDocument"
   },
-  "security": {
-    "headers": {
-      "helmet": "app.use(helmet());",
-      "cors": "app.use(cors(corsOptions));"
-    },
-    "sanitization": {
-      "mongo": "app.use(mongoSanitize());",
-      "xss": "app.use(xss());"
-    }
+  "Network": {
+    "interface": "INetwork",
+    "model": "NetworkModel",
+    "document": "NetworkDocument"
   }
 }
