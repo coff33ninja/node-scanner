@@ -7,18 +7,35 @@ import { Search, Users as UsersIcon } from "lucide-react";
 import Layout from "@/components/Layout";
 import UserCard from "@/components/users/UserCard";
 import UserSkeleton from "@/components/users/UserSkeleton";
-import { databaseService } from "@/services/DatabaseService";
+import { databaseService, DBUser } from "@/services/DatabaseService";
 import { useAuth } from "@/contexts/AuthContext";
+import { User } from "@/contexts/AuthContext";
 
 const Users = () => {
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: users = [], isLoading } = useQuery({
+  const { data: dbUsers = [], isLoading } = useQuery({
     queryKey: ['users'],
     queryFn: databaseService.getAllUsers,
   });
+
+  // Convert DBUser to User type
+  const users: User[] = dbUsers.map((dbUser: DBUser) => ({
+    id: dbUser.id,
+    username: dbUser.username,
+    email: dbUser.email,
+    name: dbUser.name,
+    role: dbUser.role,
+    lastActive: dbUser.lastActive,
+    avatarUrl: dbUser.avatarUrl,
+    createdAt: dbUser.createdAt,
+    updatedAt: dbUser.updatedAt,
+    isActive: dbUser.isActive,
+    lastLoginIp: dbUser.lastLoginIp,
+    preferences: dbUser.preferences,
+  }));
 
   const filteredUsers = users.filter((user) =>
     user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -76,7 +93,7 @@ const Users = () => {
               <UserCard
                 key={user.id}
                 user={user}
-                isOnline={user.lastActive > new Date(Date.now() - 5 * 60 * 1000).toISOString()}
+                isOnline={new Date(user.lastActive).getTime() > Date.now() - 5 * 60 * 1000}
               />
             ))
           ) : (
