@@ -8,13 +8,14 @@ import Index from "./pages/Index";
 import Settings from "./pages/Settings";
 import Account from "./pages/Account";
 import Users from "./pages/Users";
+import Login from "./pages/Login";
 import { useAuth } from "./contexts/auth/AuthContext";
 
 // Protected Route wrapper component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { currentUser } = useAuth();
   if (!currentUser) {
-    return <Navigate to="/account" replace />;
+    return <Navigate to="/login" replace />;
   }
   return <>{children}</>;
 };
@@ -37,6 +38,7 @@ function App() {
           <QueryClientProvider client={queryClient}>
             <AuthProvider>
               <Routes>
+                <Route path="/login" element={<Login />} />
                 <Route path="/account" element={<Account />} />
                 <Route
                   path="/"
@@ -62,7 +64,7 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
-                <Route path="*" element={<Navigate to="/account" replace />} />
+                <Route path="*" element={<Navigate to="/login" replace />} />
               </Routes>
             </AuthProvider>
           </QueryClientProvider>
