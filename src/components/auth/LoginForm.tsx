@@ -48,7 +48,7 @@ const LoginForm = () => {
       }
 
       setIsLoading(true);
-      const success = await login(loginData.username, loginData.password, rememberMe);
+      const success = await login(loginData.username, loginData.password);
 
       if (success) {
         toast({

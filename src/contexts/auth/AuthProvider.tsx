@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFirstRun, setIsFirstRun] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -37,7 +38,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             id: userData.id,
             username: userData.username,
             email: userData.email,
-            name: userData.name || userData.username, // Fallback to username if name is not set
+            name: userData.username, // Default to username since name doesn't exist in DB
             role: userData.role as 'admin' | 'user' | 'moderator',
             lastActive: userData.last_active,
             avatarUrl: userData.avatar_url,
@@ -61,9 +62,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (username: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({ 
+        email: username, // Using username as email for now
+        password 
+      });
       if (error) throw error;
       return true;
     } catch (error) {
@@ -77,14 +81,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const register = async (email: string, password: string, username: string) => {
+  const register = async (data: { username: string, password: string, email: string, name: string }) => {
     try {
       const { error } = await supabase.auth.signUp({
-        email,
-        password,
+        email: data.email,
+        password: data.password,
         options: {
           data: {
-            username,
+            username: data.username,
+            name: data.name,
           },
         },
       });
@@ -99,6 +104,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       return false;
     }
+  };
+
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Password change error:', error);
+      return false;
+    }
+  };
+
+  const deleteAccount = async () => {
+    try {
+      const { error } = await supabase.auth.admin.deleteUser(currentUser?.id as string);
+      if (error) throw error;
+    } catch (error) {
+      console.error('Account deletion error:', error);
+      throw error;
+    }
+  };
+
+  const exportData = async () => {
+    // Implementation pending
+    console.log('Export data not implemented yet');
   };
 
   const logout = async () => {
@@ -139,11 +170,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     <AuthContext.Provider value={{
       currentUser,
       isLoading,
+      isFirstRun,
       error,
       login,
       logout,
       register,
       updateProfile,
+      changePassword,
+      deleteAccount,
+      exportData,
     }}>
       {children}
     </AuthContext.Provider>
