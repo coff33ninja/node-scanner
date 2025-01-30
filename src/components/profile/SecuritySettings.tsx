@@ -57,7 +57,7 @@ const SecuritySettings = () => {
         onExportData={exportData}
         onDeleteAccount={async () => {
           try {
-            await deleteAccount("");
+            await deleteAccount();
             toast({
               title: "Account Deleted",
               description: "Your account has been permanently deleted",
