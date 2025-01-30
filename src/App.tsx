@@ -1,6 +1,6 @@
 import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider } from "./contexts/auth/AuthProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@radix-ui/react-tooltip";
 import { Routes, Route, Navigate } from "react-router-dom";
@@ -8,7 +8,7 @@ import Index from "./pages/Index";
 import Settings from "./pages/Settings";
 import Account from "./pages/Account";
 import Users from "./pages/Users";
-import { useAuth } from "./contexts/AuthContext";
+import { useAuth } from "./contexts/auth/AuthContext";
 
 // Protected Route wrapper component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {

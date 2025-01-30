@@ -2,14 +2,15 @@ export interface User {
   id: string;
   username: string;
   email: string;
+  name: string;
   role: 'admin' | 'user' | 'moderator';
-  lastActive?: string;
+  lastActive: string;
   avatarUrl?: string;
   passwordChanged?: boolean;
   twoFactorEnabled?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-  isActive?: boolean;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
   lastLoginIp?: string;
   preferences?: {
     theme: 'light' | 'dark' | 'system';
@@ -19,13 +20,15 @@ export interface User {
 }
 
 export interface RegisterData {
-  email: string;
-  password: string;
   username: string;
+  password: string;
+  email: string;
+  name: string;
+  language?: string;
 }
 
 export interface UpdateProfileData {
-  username?: string;
+  name?: string;
   email?: string;
   avatarUrl?: string;
   preferences?: User['preferences'];
