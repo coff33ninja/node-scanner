@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { useSessionManagement } from "@/hooks/useSessionManagement";
 import { PasswordSection } from "./security/PasswordSection";

@@ -1,4 +1,4 @@
-import { User } from "@/contexts/AuthContext";
+import { User } from "@/contexts/auth/types";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

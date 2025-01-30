@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LogIn, AlertTriangle } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { LoginFields } from "./forms/LoginFields";
 import { useLoginAttempts } from "./hooks/useLoginAttempts";

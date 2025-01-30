@@ -20,7 +20,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .single();
         
         if (userData) {
-          // Transform the data to match our User interface
           const rawPreferences = userData.preferences as { [key: string]: any } | null;
           const defaultPreferences = {
             theme: 'system' as const,
@@ -38,6 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             id: userData.id,
             username: userData.username,
             email: userData.email,
+            name: userData.name || userData.username, // Fallback to username if name is not set
             role: userData.role as 'admin' | 'user' | 'moderator',
             lastActive: userData.last_active,
             avatarUrl: userData.avatar_url,

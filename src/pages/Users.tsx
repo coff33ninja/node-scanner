@@ -8,8 +8,8 @@ import Layout from "@/components/Layout";
 import UserCard from "@/components/users/UserCard";
 import UserSkeleton from "@/components/users/UserSkeleton";
 import { databaseService, DBUser } from "@/services/DatabaseService";
-import { useAuth } from "@/contexts/AuthContext";
-import { User } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth/AuthContext";
+import { User } from "@/contexts/auth/types";
 
 const Users = () => {
   const { currentUser } = useAuth();
