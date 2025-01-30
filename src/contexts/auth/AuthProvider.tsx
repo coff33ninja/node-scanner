@@ -21,6 +21,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (userData) {
           // Transform the data to match our User interface
+          const preferences = typeof userData.preferences === 'object' ? userData.preferences : {
+            theme: 'system',
+            notifications: true,
+            language: 'en'
+          };
+
           setCurrentUser({
             id: userData.id,
             username: userData.username,
@@ -34,7 +40,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             updatedAt: userData.updated_at,
             isActive: userData.is_active,
             lastLoginIp: userData.last_login_ip,
-            preferences: userData.preferences
+            preferences: {
+              theme: (preferences.theme || 'system') as 'light' | 'dark' | 'system',
+              notifications: Boolean(preferences.notifications),
+              language: String(preferences.language || 'en')
+            }
           });
         }
       } else {
