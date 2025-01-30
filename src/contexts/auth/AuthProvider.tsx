@@ -1,112 +1,121 @@
-import React, { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AuthContext } from './AuthContext';
-import { useAuthState } from './useAuthState';
-import { useAuthActions } from './useAuthActions';
-import { API_ENDPOINTS, getAuthHeaders } from '@/config/api';
-import { AUTH_CONSTANTS } from './constants';
+import { supabase } from '@/integrations/supabase/client';
+import { User } from './types';
+import { useToast } from '@/hooks/use-toast';
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const {
-    currentUser,
-    setCurrentUser,
-    isFirstRun,
-    setIsFirstRun,
-    isLoading,
-    setIsLoading,
-    error,
-    setError,
-  } = useAuthState();
-
-  const { register, login, logout } = useAuthActions(setCurrentUser, setError, setIsLoading);
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        const token = localStorage.getItem(AUTH_CONSTANTS.TOKEN_KEY);
-        if (token) {
-          const isValid = await validateSession();
-          if (isValid) {
-            await refreshToken();
-            const response = await fetch(API_ENDPOINTS.VALIDATE_SESSION, {
-              headers: getAuthHeaders(),
-            });
-            if (response.ok) {
-              const userData = await response.json();
-              setCurrentUser(userData.user);
-            }
-          } else {
-            await logout();
-          }
-        }
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-        setError('Failed to initialize authentication');
-      } finally {
-        setIsLoading(false);
-        setIsFirstRun(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        
+        setCurrentUser(userData);
+      } else {
+        setCurrentUser(null);
       }
-    };
+      setIsLoading(false);
+    });
 
-    initAuth();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const validateSession = async (): Promise<boolean> => {
+  const login = async (email: string, password: string) => {
     try {
-      const response = await fetch(API_ENDPOINTS.VALIDATE_SESSION, {
-        headers: getAuthHeaders(),
-      });
-      return response.ok;
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      return true;
     } catch (error) {
-      console.error('Session validation error:', error);
+      console.error('Login error:', error);
+      toast({
+        title: "Login Failed",
+        description: error.message,
+        variant: "destructive",
+      });
       return false;
     }
   };
 
-  const refreshToken = async (): Promise<boolean> => {
+  const register = async (email: string, password: string, username: string) => {
     try {
-      const refreshToken = localStorage.getItem(AUTH_CONSTANTS.REFRESH_TOKEN_KEY) || 
-                          sessionStorage.getItem(AUTH_CONSTANTS.REFRESH_TOKEN_KEY);
-      if (!refreshToken) return false;
-
-      const response = await fetch(API_ENDPOINTS.REFRESH_TOKEN, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
-        credentials: 'include',
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username,
+          },
+        },
       });
-
-      if (response.ok) {
-        const { token } = await response.json();
-        const storage = localStorage.getItem(AUTH_CONSTANTS.REFRESH_TOKEN_KEY) ? 
-                       localStorage : sessionStorage;
-        storage.setItem(AUTH_CONSTANTS.TOKEN_KEY, token);
-        return true;
-      }
-      return false;
+      if (error) throw error;
+      return true;
     } catch (error) {
-      console.error('Token refresh error:', error);
+      console.error('Registration error:', error);
+      toast({
+        title: "Registration Failed",
+        description: error.message,
+        variant: "destructive",
+      });
       return false;
     }
   };
 
-  const value = {
-    currentUser,
-    isFirstRun,
-    isLoading,
-    error,
-    register,
-    login,
-    logout,
-    validateSession,
-    refreshToken,
-    updateProfile: async () => false,
-    changePassword: async () => false,
-    enableTwoFactor: async () => ({ success: false }),
-    disableTwoFactor: async () => false,
-    verifyTwoFactor: async () => false,
-    deleteAccount: async () => false,
-    exportData: async () => null,
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Logout Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  const updateProfile = async (data: Partial<User>) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update(data)
+        .eq('id', currentUser?.id);
+      
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Profile update error:', error);
+      toast({
+        title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  return (
+    <AuthContext.Provider value={{
+      currentUser,
+      isLoading,
+      error,
+      login,
+      logout,
+      register,
+      updateProfile,
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
