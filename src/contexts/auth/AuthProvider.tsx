@@ -19,7 +19,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .eq('id', session.user.id)
           .single();
         
-        setCurrentUser(userData);
+        if (userData) {
+          // Transform the data to match our User interface
+          setCurrentUser({
+            id: userData.id,
+            username: userData.username,
+            email: userData.email,
+            role: userData.role as 'admin' | 'user' | 'moderator',
+            lastActive: userData.last_active,
+            avatarUrl: userData.avatar_url,
+            passwordChanged: userData.password_changed,
+            twoFactorEnabled: userData.two_factor_enabled,
+            createdAt: userData.created_at,
+            updatedAt: userData.updated_at,
+            isActive: userData.is_active,
+            lastLoginIp: userData.last_login_ip,
+            preferences: userData.preferences
+          });
+        }
       } else {
         setCurrentUser(null);
       }

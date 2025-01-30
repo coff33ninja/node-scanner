@@ -25,7 +25,6 @@ export const useDevices = () => {
       
       if (error) throw error;
       
-      // Transform the data to match our Device interface
       return (data as any[]).map(device => ({
         id: device.id,
         name: device.name,
@@ -40,13 +39,18 @@ export const useDevices = () => {
 
   const addDevice = useMutation({
     mutationFn: async (device: Omit<Device, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
+      const session = await supabase.auth.getSession();
+      const userId = session.data.session?.user.id;
+      
+      if (!userId) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('devices')
         .insert([{
           name: device.name,
           mac_address: device.macAddress,
           ip_address: device.ipAddress,
-          user_id: supabase.auth.getUser().then(res => res.data.user?.id)
+          user_id: userId
         }])
         .select()
         .single();
