@@ -24,7 +24,17 @@ export const useDevices = () => {
         .select('*');
       
       if (error) throw error;
-      return data as Device[];
+      
+      // Transform the data to match our Device interface
+      return (data as any[]).map(device => ({
+        id: device.id,
+        name: device.name,
+        macAddress: device.mac_address,
+        ipAddress: device.ip_address,
+        userId: device.user_id,
+        createdAt: device.created_at,
+        updatedAt: device.updated_at
+      })) as Device[];
     },
   });
 
@@ -32,7 +42,12 @@ export const useDevices = () => {
     mutationFn: async (device: Omit<Device, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
       const { data, error } = await supabase
         .from('devices')
-        .insert([device])
+        .insert([{
+          name: device.name,
+          mac_address: device.macAddress,
+          ip_address: device.ipAddress,
+          user_id: supabase.auth.getUser().then(res => res.data.user?.id)
+        }])
         .select()
         .single();
       
@@ -59,7 +74,11 @@ export const useDevices = () => {
     mutationFn: async (device: Partial<Device> & { id: string }) => {
       const { data, error } = await supabase
         .from('devices')
-        .update(device)
+        .update({
+          name: device.name,
+          mac_address: device.macAddress,
+          ip_address: device.ipAddress,
+        })
         .eq('id', device.id)
         .select()
         .single();

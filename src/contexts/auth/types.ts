@@ -17,3 +17,16 @@ export interface User {
     language: string;
   };
 }
+
+export interface RegisterData {
+  email: string;
+  password: string;
+  username: string;
+}
+
+export interface UpdateProfileData {
+  username?: string;
+  email?: string;
+  avatarUrl?: string;
+  preferences?: User['preferences'];
+}

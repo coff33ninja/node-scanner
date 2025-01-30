@@ -2,7 +2,7 @@ import Layout from "../components/Layout";
 import { DeviceCard } from "../components/DeviceCard";
 import { AddDeviceDialog } from "../components/AddDeviceDialog";
 import { DeviceStats } from "../components/DeviceStats";
-import { useDevices } from "../hooks/useDevices";
+import { useDevices, Device } from "../hooks/useDevices";
 import { useAuth } from "../contexts/auth/AuthContext";
 import { Loader2 } from "lucide-react";
 
@@ -20,6 +20,14 @@ const Index = () => {
     );
   }
 
+  const transformDeviceToNetworkDevice = (device: Device) => ({
+    name: device.name,
+    ip: device.ipAddress || '',
+    mac: device.macAddress,
+    status: 'online' as const,
+    lastSeen: device.updatedAt || '',
+  });
+
   return (
     <Layout>
       <div className="flex items-center justify-between mb-8">
@@ -29,23 +37,26 @@ const Index = () => {
             Manage and monitor your network devices
           </p>
         </div>
-        <AddDeviceDialog onDeviceAdd={(device) => addDevice.mutate(device)} />
+        <AddDeviceDialog onDeviceAdd={(device) => addDevice.mutate({
+          name: device.name,
+          macAddress: device.mac,
+          ipAddress: device.ip
+        })} />
       </div>
 
-      <DeviceStats devices={devices || []} />
+      <DeviceStats devices={devices?.map(transformDeviceToNetworkDevice) || []} />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {devices?.map((device) => (
-          <DeviceCard
-            key={device.id}
-            name={device.name}
-            ip={device.ipAddress || ''}
-            mac={device.macAddress}
-            status="online"
-            lastSeen={device.updatedAt || ''}
-            onDelete={() => deleteDevice.mutate(device.id)}
-          />
-        ))}
+        {devices?.map((device) => {
+          const networkDevice = transformDeviceToNetworkDevice(device);
+          return (
+            <DeviceCard
+              key={device.id}
+              {...networkDevice}
+              onDelete={() => deleteDevice.mutate(device.id)}
+            />
+          );
+        })}
       </div>
     </Layout>
   );
