@@ -12,30 +12,42 @@ export type Database = {
       devices: {
         Row: {
           created_at: string | null
+          hostname: string | null
           id: string
           ip_address: string | null
+          last_scan: string | null
           mac_address: string
           name: string
+          open_ports: Json | null
           updated_at: string | null
           user_id: string | null
+          vendor: string | null
         }
         Insert: {
           created_at?: string | null
+          hostname?: string | null
           id?: string
           ip_address?: string | null
+          last_scan?: string | null
           mac_address: string
           name: string
+          open_ports?: Json | null
           updated_at?: string | null
           user_id?: string | null
+          vendor?: string | null
         }
         Update: {
           created_at?: string | null
+          hostname?: string | null
           id?: string
           ip_address?: string | null
+          last_scan?: string | null
           mac_address?: string
           name?: string
+          open_ports?: Json | null
           updated_at?: string | null
           user_id?: string | null
+          vendor?: string | null
         }
         Relationships: [
           {
