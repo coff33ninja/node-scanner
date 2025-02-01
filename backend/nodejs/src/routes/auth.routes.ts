@@ -1,51 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
-import { User, UserModel } from '../models/user.model';
-import * as argon2 from 'argon2';
-import { Redis } from 'ioredis';
-import connectRedis from 'connect-redis';
-import session from 'express-session';
+import { auth, db } from '../config/supabase.config';
 
 const router = Router();
-
-// Redis client setup
-const redis = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD || undefined,
-  tls: process.env.REDIS_TLS === 'true' ? {} : undefined
-});
-
-redis.on('connect', () => {
-  console.log('Connected to Redis');
-});
-
-redis.on('error', (err) => {
-  console.error('Redis connection error:', err);
-});
-
-// Initialize Redis store
-const RedisStore = connectRedis(session);
-const redisStore = new RedisStore({
-  client: redis,
-  prefix: 'alttab:sess:',
-});
-
-// Session configuration
-router.use(session({
-  store: redisStore,
-  secret: process.env.SESSION_SECRET || 'your_session_secret_here',
-  name: 'sessionId',
-  resave: false,
-  saveUninitialized: false,
-  rolling: true,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'lax'
-  }
-}));
 
 // Registration validation middleware
 const registerValidation = [
@@ -77,15 +34,6 @@ interface LoginRequestBody {
   password: string;
 }
 
-// Custom type for session data
-declare module 'express-session' {
-  interface SessionData {
-    userId: number;
-    username: string;
-    email: string;
-  }
-}
-
 // Registration route
 router.post(
   '/register',
@@ -99,42 +47,32 @@ router.post(
 
       const { username, email, password } = req.body;
 
-      // Check if user already exists
-      const existingUser = UserModel.findByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({ message: 'Email already exists' });
+      // Sign up user with Supabase Auth
+      const authData = await auth.signUp(email, password, { username });
+
+      try {
+        // Create user profile
+        const profile = await db.createUserProfile(
+          authData.user.id,
+          username,
+          email
+        );
+
+        res.status(201).json({
+          user: profile,
+          message: 'Registration successful'
+        });
+      } catch (profileError) {
+        // If profile creation fails, we should clean up the auth user
+        // Note: This requires admin rights which we might not have in the client
+        console.error('Failed to create user profile:', profileError);
+        res.status(500).json({ message: 'Failed to create user profile' });
       }
-
-      // Hash password
-      const hashedPassword = await argon2.hash(password);
-
-      // Create user
-      const result = UserModel.create({
-        username,
-        email,
-        password: hashedPassword,
-      });
-
-      const user = UserModel.findById(result.lastInsertRowid as number);
-      if (!user) {
-        throw new Error('Failed to create user');
-      }
-
-      // Set user session
-      req.session.userId = user.id!;
-      req.session.username = user.username;
-      req.session.email = user.email;
-
-      // Remove password from user object before sending response
-      const { password: _, ...userData } = user;
-
-      res.status(201).json({
-        user: userData,
-        message: 'Registration successful'
-      });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration error:', error);
-      res.status(500).json({ message: 'Server error during registration' });
+      res.status(error.status || 500).json({ 
+        message: error.message || 'Server error during registration'
+      });
     }
   }
 );
@@ -148,74 +86,57 @@ router.post('/login', async (req: Request<object, object, LoginRequestBody>, res
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    const user = UserModel.findByEmail(email);
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid email or password' });
-    }
-
-    const isMatch = await argon2.verify(user.password, password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid email or password' });
-    }
-
-    // Set user session
-    req.session.userId = user.id!;
-    req.session.username = user.username;
-    req.session.email = user.email;
-
-    // Remove password from user object before sending response
-    const { password: _, ...userData } = user;
+    const data = await auth.signIn(email, password);
+    const profile = await db.getUserProfile(data.user.id);
 
     res.status(200).json({
-      user: userData,
+      user: profile,
+      session: data.session,
       message: 'Login successful'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error during login' });
+    res.status(error.status || 500).json({ 
+      message: error.message || 'Server error during login'
+    });
   }
 });
 
 // Logout route
-router.post('/logout', (req: Request, res: Response) => {
-  const sessionId = req.session.id;
-
-  req.session.destroy((err) => {
-    if (err) {
-      return res.status(500).json({ message: 'Error logging out' });
-    }
-
-    // Explicitly delete session from Redis
-    redis.del(`alttab:sess:${sessionId}`).catch(console.error);
-
-    res.clearCookie('sessionId');
+router.post('/logout', async (req: Request, res: Response) => {
+  try {
+    await auth.signOut();
     res.json({ message: 'Logged out successfully' });
-  });
-});
-
-// Check auth status route
-router.get('/check-auth', (req: Request, res: Response) => {
-  if (req.session?.userId) {
-    res.json({
-      isAuthenticated: true,
-      user: {
-        id: req.session.userId,
-        username: req.session.username,
-        email: req.session.email
-      }
+  } catch (error: any) {
+    console.error('Logout error:', error);
+    res.status(error.status || 500).json({ 
+      message: error.message || 'Server error during logout'
     });
-  } else {
-    res.json({ isAuthenticated: false });
   }
 });
 
-// Session cleanup on server shutdown
-process.on('SIGTERM', () => {
-  redis.quit();
-});
+// Check auth status route
+router.get('/check-auth', async (req: Request, res: Response) => {
+  try {
+    const { session } = await auth.getSession();
 
-process.on('SIGINT', () => {
-  redis.quit();
+    if (!session) {
+      return res.json({ isAuthenticated: false });
+    }
+
+    const profile = await db.getUserProfile(session.user.id);
+
+    res.json({
+      isAuthenticated: true,
+      user: profile,
+      session
+    });
+  } catch (error: any) {
+    console.error('Auth check error:', error);
+    res.status(error.status || 500).json({ 
+      message: error.message || 'Server error during auth check'
+    });
+  }
 });
 
 export const authRoutes = router;

@@ -1,57 +1,66 @@
 import { Request, Response } from 'express';
-import * as argon2 from 'argon2';
-import jwt from 'jsonwebtoken';
-import { UserModel } from '../../models/user.model';
 import { registerSchema } from '../../validators/auth.validator';
 import { ZodError } from 'zod';
-
-interface JWTPayload {
-    userId: number;
-}
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_here';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
+import { supabase } from '../../config/supabase.config';
 
 export const registerController = async (req: Request, res: Response) => {
     try {
         const validatedData = registerSchema.parse(req.body);
 
-        const existingUser = UserModel.findByEmail(validatedData.email);
-        if (existingUser) {
+        // Register user with Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email: validatedData.email,
+            password: validatedData.password,
+            options: {
+                data: {
+                    username: validatedData.username,
+                },
+            },
+        });
+
+        if (authError) {
             return res.status(400).json({
                 status: 'error',
-                message: 'User with this email already exists'
+                message: authError.message
             });
         }
 
-        const hashedPassword = await argon2.hash(validatedData.password);
-
-        const result = UserModel.create({
-            username: validatedData.username,
-            email: validatedData.email,
-            password: hashedPassword
-        });
-
-        const newUser = UserModel.findById(result.lastInsertRowid as number);
-        if (!newUser) {
-            throw new Error('Failed to create user');
+        if (!authData.user) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Failed to create user'
+            });
         }
 
-        const payload: JWTPayload = { userId: newUser.id! };
-        const token = jwt.sign(
-            payload,
-            JWT_SECRET,
-            { expiresIn: JWT_EXPIRES_IN }
-        );
+        // Create user profile in Supabase database
+        const { error: profileError } = await supabase
+            .from('users')
+            .insert({
+                id: authData.user.id,
+                username: validatedData.username,
+                email: validatedData.email,
+            });
 
-        // Remove password from response
-        const { password: _, ...userData } = newUser;
+        if (profileError) {
+            // Attempt to clean up the auth user if profile creation fails
+            await supabase.auth.admin.deleteUser(authData.user.id);
+            return res.status(500).json({
+                status: 'error',
+                message: 'Failed to create user profile'
+            });
+        }
 
+        // Supabase handles the session token automatically
         res.status(201).json({
             status: 'success',
             data: {
-                user: userData,
-                token
+                user: {
+                    id: authData.user.id,
+                    email: authData.user.email,
+                    username: validatedData.username,
+                },
+                session: authData.session,
+                message: 'Registration successful. Please check your email for verification.'
             }
         });
     } catch (error) {
