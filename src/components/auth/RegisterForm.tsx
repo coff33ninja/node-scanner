@@ -2,9 +2,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth/AuthContext";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { validatePassword } from "@/utils/passwordUtils";
 import { RegisterFormFields } from "./forms/RegisterFormFields";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, UserPlus } from "lucide-react";
 
 const RegisterForm = () => {
   const navigate = useNavigate();
@@ -22,6 +25,7 @@ const RegisterForm = () => {
   });
 
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const passwordValidation = validatePassword(registerData.password);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -48,7 +52,6 @@ const RegisterForm = () => {
       errors.name = "Name must be at least 2 characters long";
     }
 
-    const passwordValidation = validatePassword(registerData.password);
     if (!passwordValidation.isValid) {
       errors.password = passwordValidation.errors[0];
     }
@@ -83,7 +86,6 @@ const RegisterForm = () => {
         toast({
           title: "Registration successful!",
           description: "Welcome to our platform!",
-          variant: "default",
         });
         setTimeout(() => navigate("/"), 1500);
       } else {
@@ -106,10 +108,31 @@ const RegisterForm = () => {
 
   const handleDataChange = (field: string, value: string) => {
     setRegisterData(prev => ({ ...prev, [field]: value }));
+    // Clear validation error when user starts typing
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
   };
 
   return (
     <div className="space-y-4">
+      {Object.keys(validationErrors).length > 0 && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            Please fix the following errors:
+            <ul className="list-disc list-inside mt-2">
+              {Object.values(validationErrors).map((error, index) => (
+                <li key={index} className="text-sm">{error}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <RegisterFormFields
         data={registerData}
         errors={validationErrors}
@@ -118,13 +141,48 @@ const RegisterForm = () => {
         onTermsChange={setAcceptedTerms}
       />
 
+      {registerData.password && (
+        <div className="space-y-2">
+          <Progress value={passwordValidation.strength} className="h-2" />
+          <p className="text-sm text-muted-foreground">
+            Password strength: {
+              passwordValidation.strength >= 75 ? "Strong" :
+              passwordValidation.strength >= 50 ? "Medium" : "Weak"
+            }
+          </p>
+        </div>
+      )}
+
       <Button
         onClick={handleRegister}
         className="w-full"
         disabled={isLoading}
       >
-        {isLoading ? "Creating Account..." : "Create Account"}
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Creating Account...
+          </>
+        ) : (
+          <>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Create Account
+          </>
+        )}
       </Button>
+
+      <div className="text-center mt-4">
+        <p className="text-xs text-muted-foreground">
+          By creating an account, you agree to our{" "}
+          <a href="/terms" className="text-primary hover:underline">
+            Terms of Service
+          </a>{" "}
+          and{" "}
+          <a href="/privacy" className="text-primary hover:underline">
+            Privacy Policy
+          </a>
+        </p>
+      </div>
     </div>
   );
 };

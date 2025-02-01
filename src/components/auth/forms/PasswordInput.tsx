@@ -12,6 +12,7 @@ interface PasswordInputProps {
   showStrength?: boolean;
   error?: string;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 export const PasswordInput = ({
@@ -20,27 +21,36 @@ export const PasswordInput = ({
   onChange,
   showStrength = false,
   error,
-  placeholder
+  placeholder,
+  disabled = false
 }: PasswordInputProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const passwordStrength = showStrength ? validatePassword(value).strength : 0;
 
+  const getStrengthColor = (strength: number) => {
+    if (strength >= 75) return "bg-green-500";
+    if (strength >= 50) return "bg-yellow-500";
+    return "bg-red-500";
+  };
+
   return (
     <div className="space-y-2">
-      <Label htmlFor="password">{label}</Label>
+      <Label htmlFor={label.toLowerCase()}>{label}</Label>
       <div className="relative">
         <Input
-          id="password"
+          id={label.toLowerCase()}
           type={showPassword ? "text" : "password"}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           className={error ? "border-red-500" : ""}
+          disabled={disabled}
         />
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
           className="absolute right-3 top-1/2 -translate-y-1/2"
+          disabled={disabled}
         >
           {showPassword ? (
             <EyeOff className="h-4 w-4 text-gray-500" />
@@ -50,22 +60,18 @@ export const PasswordInput = ({
         </button>
       </div>
       {showStrength && value && (
-        <>
-          <Progress
-            value={passwordStrength}
-            className="h-2"
-            color={
-              passwordStrength >= 75 ? "green" :
-              passwordStrength >= 50 ? "yellow" : "red"
-            }
+        <div className="space-y-1">
+          <Progress 
+            value={passwordStrength} 
+            className={`h-1 ${getStrengthColor(passwordStrength)}`}
           />
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Password strength: {
               passwordStrength >= 75 ? "Strong" :
               passwordStrength >= 50 ? "Medium" : "Weak"
             }
           </p>
-        </>
+        </div>
       )}
       {error && (
         <p className="text-sm text-red-500">{error}</p>

@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogIn, AlertTriangle } from "lucide-react";
+import { LogIn, AlertTriangle, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth/AuthContext";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { LoginFields } from "./forms/LoginFields";
 import { useLoginAttempts } from "./hooks/useLoginAttempts";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -54,9 +57,16 @@ const LoginForm = () => {
         toast({
           title: "Success",
           description: "Login successful!",
-          variant: "default",
         });
         resetAttempts();
+        // Store remember me preference
+        if (rememberMe) {
+          localStorage.setItem("rememberMe", "true");
+          localStorage.setItem("lastUsername", loginData.username);
+        } else {
+          localStorage.removeItem("rememberMe");
+          localStorage.removeItem("lastUsername");
+        }
         setTimeout(() => navigate("/"), 1500);
       } else {
         incrementAttempts();
@@ -86,24 +96,34 @@ const LoginForm = () => {
   return (
     <div className="space-y-4">
       {isAccountLocked() && (
-        <div className="flex items-center space-x-2 p-4 bg-red-50 border border-red-200 rounded-md">
-          <AlertTriangle className="h-5 w-5 text-red-500" />
-          <p className="text-sm text-red-600">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
             Account temporarily locked. Please try again in {getRemainingLockoutTime()} minutes.
-          </p>
-        </div>
+          </AlertDescription>
+        </Alert>
       )}
 
       <LoginFields
         loginData={loginData}
         showPassword={showPassword}
-        rememberMe={rememberMe}
         isLoading={isLoading}
         isLocked={isAccountLocked()}
         onDataChange={handleDataChange}
         onShowPasswordChange={setShowPassword}
-        onRememberMeChange={setRememberMe}
       />
+
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="remember-me"
+          checked={rememberMe}
+          onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+          disabled={isLoading || isAccountLocked()}
+        />
+        <Label htmlFor="remember-me" className="text-sm cursor-pointer">
+          Remember me
+        </Label>
+      </div>
 
       <Button
         onClick={handleLogin}
@@ -111,7 +131,10 @@ const LoginForm = () => {
         disabled={isLoading || isAccountLocked()}
       >
         {isLoading ? (
-          "Logging in..."
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Logging in...
+          </>
         ) : (
           <>
             <LogIn className="mr-2 h-4 w-4" />
@@ -120,13 +143,23 @@ const LoginForm = () => {
         )}
       </Button>
 
-      <div className="text-center mt-4">
+      <div className="text-center mt-4 space-y-2">
         <a
           href="/forgot-password"
-          className="text-sm text-primary hover:underline"
+          className="text-sm text-primary hover:underline block"
         >
           Forgot your password?
         </a>
+        <div className="text-xs text-muted-foreground">
+          By logging in, you agree to our{" "}
+          <a href="/terms" className="text-primary hover:underline">
+            Terms of Service
+          </a>{" "}
+          and{" "}
+          <a href="/privacy" className="text-primary hover:underline">
+            Privacy Policy
+          </a>
+        </div>
       </div>
     </div>
   );
