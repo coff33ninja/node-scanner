@@ -9,6 +9,7 @@ import Settings from "./pages/Settings";
 import Account from "./pages/Account";
 import Users from "./pages/Users";
 import Login from "./pages/Login";
+import Privacy from "./pages/Privacy";
 import { useAuth } from "./contexts/auth/AuthContext";
 
 // Protected Route wrapper component
@@ -40,6 +41,7 @@ function App() {
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/account" element={<Account />} />
+                <Route path="/privacy" element={<Privacy />} />
                 <Route
                   path="/"
                   element={
