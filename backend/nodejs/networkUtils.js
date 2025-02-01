@@ -33,7 +33,6 @@ export class NetworkScanner {
 
         const lines = stdout.split('\n');
         for (const line of lines) {
-          // Match MAC address pattern
           const match = line.match(/([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})/);
           if (match) {
             resolve(match[0]);
@@ -47,26 +46,11 @@ export class NetworkScanner {
 
   async scanNetwork(ipRange) {
     try {
-      console.log('Attempting Node.js network scan...');
-      const nodeResults = await this.scanWithNode(ipRange);
-      if (nodeResults && nodeResults.length > 0) {
-        return nodeResults;
-      }
-      console.log('Node.js scan failed or found no devices, falling back to Python scanner');
-      return await this.scanWithPython(ipRange);
-    } catch (error) {
-      console.error('Network scan failed:', error);
-      throw new Error('Network scan failed: ' + error.message);
-    }
-  }
-
-  async scanWithNode(ipRange) {
-    return new Promise(async (resolve) => {
+      console.log('Starting network scan...');
       const devices = [];
       const [baseIp, subnet] = ipRange.split('/');
       const baseIpParts = baseIp.split('.');
       const hosts = Math.pow(2, 32 - parseInt(subnet));
-      const scanPromises = [];
 
       // Ping sweep for faster initial discovery
       const pingPromises = [];
@@ -78,127 +62,53 @@ export class NetworkScanner {
 
         pingPromises.push(
           new Promise((resolve) => {
-            exec(cmd, (error, stdout) => {
-              if (!error && stdout.includes('TTL=') || stdout.includes('ttl=')) {
-                resolve(ip);
-              } else {
-                resolve(null);
+            exec(cmd, async (error, stdout) => {
+              if (!error && (stdout.includes('TTL=') || stdout.includes('ttl='))) {
+                // Get MAC address and hostname for responding IPs
+                const mac = await this.getMacFromArp(ip);
+                let hostname = '';
+                try {
+                  hostname = await new Promise((resolve) => {
+                    exec(`nslookup ${ip}`, (error, stdout) => {
+                      if (!error) {
+                        const match = stdout.match(/name\s*=\s*([^\s]+)/i);
+                        resolve(match ? match[1].replace(/\.$/, '') : '');
+                      } else {
+                        resolve('');
+                      }
+                    });
+                  });
+                } catch (err) {
+                  console.error(`Error getting hostname for ${ip}:`, err);
+                }
+
+                if (mac) {
+                  devices.push({
+                    ip,
+                    mac,
+                    name: hostname || `Device (${ip})`,
+                    status: 'online',
+                    lastSeen: new Date().toISOString(),
+                    hostname
+                  });
+                }
               }
+              resolve();
             });
           })
         );
       }
 
-      // Wait for all pings to complete
-      const activeIps = (await Promise.all(pingPromises)).filter(ip => ip !== null);
-
-      // For each responding IP, do a more detailed scan
-      for (const ip of activeIps) {
-        scanPromises.push(
-          new Promise(async (resolve) => {
-            try {
-              const socket = new net.Socket();
-              socket.setTimeout(500);
-
-              // Try to get MAC address
-              const mac = await this.getMacFromArp(ip);
-              
-              // Try common ports
-              const commonPorts = [80, 443, 22, 445, 139];
-              const openPorts = [];
-              const services = {
-                80: 'HTTP',
-                443: 'HTTPS',
-                22: 'SSH',
-                445: 'SMB',
-                139: 'NetBIOS',
-              };
-              let isAnyPortOpen = false;
-
-              for (const port of commonPorts) {
-                try {
-                  await new Promise((resolve, reject) => {
-                    const portSocket = new net.Socket();
-                    portSocket.setTimeout(500);
-                    
-                    portSocket.on('connect', () => {
-                      isAnyPortOpen = true;
-                      portSocket.destroy();
-                      resolve(true);
-                    });
-                    
-                    portSocket.on('error', () => {
-                      portSocket.destroy();
-                      resolve(false);
-                    });
-                    
-                    portSocket.on('timeout', () => {
-                      portSocket.destroy();
-                      resolve(false);
-                    });
-                    
-                    portSocket.connect(port, ip);
-                  });
-                  
-                  if (isAnyPortOpen) break;
-                } catch (err) {
-                  console.error(`Error scanning port %d on %s:`, port, ip, err);
-                }
-              }
-
-              if (isAnyPortOpen || mac) {
-                devices.push({
-                  ip,
-                  mac: mac || 'Unknown',
-                  status: 'online',
-                  name: `Device (${ip})`,
-                  lastSeen: new Date().toISOString(),
-                });
-              }
-            } catch (err) {
-              console.error('Error scanning %s:', ip, err);
-            }
-            resolve();
-          })
-        );
-      }
-
-      // Wait for all detailed scans to complete
-      await Promise.all(scanPromises);
-      resolve(devices);
-    });
+      await Promise.all(pingPromises);
+      console.log('Scan completed, found devices:', devices);
+      return devices;
+    } catch (error) {
+      console.error('Network scan failed:', error);
+      throw error;
+    }
   }
 
-  async scanWithPython(ipRange) {
-    return new Promise((resolve, reject) => {
-      const pythonProcess = spawn('python', ['backend/python/network_utils.py', ipRange]);
-      let outputData = '';
-      let errorData = '';
-
-      pythonProcess.stdout.on('data', (data) => {
-        outputData += data.toString();
-      });
-
-      pythonProcess.stderr.on('data', (data) => {
-        errorData += data.toString();
-      });
-
-      pythonProcess.on('close', (code) => {
-        if (code !== 0) {
-          reject(new Error(`Python scanner failed: ${errorData}`));
-          return;
-        }
-        try {
-          const devices = JSON.parse(outputData);
-          resolve(devices);
-        } catch (error) {
-          reject(new Error('Failed to parse Python scanner output'));
-        }
-      });
-    });
-  }
-
-  wakeOnLan(macAddress) {
+  async wakeOnLan(macAddress) {
     return new Promise((resolve, reject) => {
       const MAC_REPEAT = 16;
       const MAC_LENGTH = 6;
