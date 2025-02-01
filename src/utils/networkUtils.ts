@@ -1,4 +1,5 @@
 import { API_ENDPOINTS, getAuthHeaders } from '@/config/api';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface NetworkDevice {
   id?: string;
@@ -8,7 +9,8 @@ export interface NetworkDevice {
   vendor?: string;
   status: 'online' | 'offline';
   lastSeen: string;
-  group?: string;
+  hostname?: string;
+  openPorts?: number[];
 }
 
 export interface ScanOptions {
@@ -31,7 +33,46 @@ export const scanNetwork = async (options: ScanOptions): Promise<NetworkDevice[]
       throw new Error('Network scan failed');
     }
     
-    return await response.json();
+    const devices = await response.json();
+    
+    // Store devices in database
+    for (const device of devices) {
+      const { data: existingDevice } = await supabase
+        .from('devices')
+        .select()
+        .eq('mac_address', device.mac)
+        .single();
+
+      if (existingDevice) {
+        // Update existing device
+        await supabase
+          .from('devices')
+          .update({
+            name: device.name,
+            ip_address: device.ip,
+            last_scan: new Date().toISOString(),
+            vendor: device.vendor,
+            hostname: device.hostname,
+            open_ports: device.openPorts || []
+          })
+          .eq('mac_address', device.mac);
+      } else {
+        // Insert new device
+        await supabase
+          .from('devices')
+          .insert({
+            name: device.name,
+            mac_address: device.mac,
+            ip_address: device.ip,
+            last_scan: new Date().toISOString(),
+            vendor: device.vendor,
+            hostname: device.hostname,
+            open_ports: device.openPorts || []
+          });
+      }
+    }
+    
+    return devices;
   } catch (error) {
     console.error('Error scanning network:', error);
     throw error;
