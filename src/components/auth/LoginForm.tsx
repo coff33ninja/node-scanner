@@ -7,8 +7,6 @@ import { useToast } from "@/hooks/use-toast";
 import { LoginFields } from "./forms/LoginFields";
 import { useLoginAttempts } from "./hooks/useLoginAttempts";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -107,23 +105,13 @@ const LoginForm = () => {
       <LoginFields
         loginData={loginData}
         showPassword={showPassword}
+        rememberMe={rememberMe}
         isLoading={isLoading}
         isLocked={isAccountLocked()}
         onDataChange={handleDataChange}
         onShowPasswordChange={setShowPassword}
+        onRememberMeChange={setRememberMe}
       />
-
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="remember-me"
-          checked={rememberMe}
-          onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-          disabled={isLoading || isAccountLocked()}
-        />
-        <Label htmlFor="remember-me" className="text-sm cursor-pointer">
-          Remember me
-        </Label>
-      </div>
 
       <Button
         onClick={handleLogin}
