@@ -38,9 +38,9 @@ export const scanNetwork = async (options: ScanOptions): Promise<NetworkDevice[]
     const devices = await response.json();
     console.log('Scanned devices:', devices);
     
-    // Store devices in database
-    const { data: session } = await supabase.auth.getSession();
-    const userId = session?.user?.id;
+    // Get session and check for user
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
 
     if (!userId) {
       console.warn('No user ID found, skipping device storage');
