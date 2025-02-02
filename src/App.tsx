@@ -14,10 +14,16 @@ import { useAuth } from "./contexts/auth/AuthContext";
 
 // Protected Route wrapper component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+  
   if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
+  
   return <>{children}</>;
 };
 
@@ -31,6 +37,47 @@ const queryClient = new QueryClient({
   },
 });
 
+function AppRoutes() {
+  const { currentUser, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <Routes>
+      <Route path="/login" element={currentUser ? <Navigate to="/" replace /> : <Login />} />
+      <Route path="/account" element={<Account />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Index />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/users"
+        element={
+          <ProtectedRoute>
+            <Users />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+  );
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -38,36 +85,7 @@ function App() {
         <TooltipProvider>
           <QueryClientProvider client={queryClient}>
             <AuthProvider>
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route path="/account" element={<Account />} />
-                <Route path="/privacy" element={<Privacy />} />
-                <Route
-                  path="/"
-                  element={
-                    <ProtectedRoute>
-                      <Index />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/settings"
-                  element={
-                    <ProtectedRoute>
-                      <Settings />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/users"
-                  element={
-                    <ProtectedRoute>
-                      <Users />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="*" element={<Navigate to="/login" replace />} />
-              </Routes>
+              <AppRoutes />
             </AuthProvider>
           </QueryClientProvider>
         </TooltipProvider>

@@ -3,6 +3,7 @@ import { AuthContext } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from './types';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -10,17 +11,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isFirstRun, setIsFirstRun] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session);
       if (session) {
-        const { data: userData } = await supabase
+        const { data: userData, error: userError } = await supabase
           .from('users')
           .select('*')
           .eq('id', session.user.id)
           .single();
         
-        if (userData) {
+        if (userError) {
+          console.error('Error fetching user data:', userError);
+          setCurrentUser(null);
+          setError('Error fetching user data');
+        } else if (userData) {
           const rawPreferences = userData.preferences as { [key: string]: any } | null;
           const defaultPreferences = {
             theme: 'system' as const,
@@ -38,7 +45,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             id: userData.id,
             username: userData.username,
             email: userData.email,
-            name: userData.username, // Default to username since name doesn't exist in DB
+            name: userData.username,
             role: userData.role as 'admin' | 'user' | 'moderator',
             lastActive: userData.last_active,
             avatarUrl: userData.avatar_url,
@@ -50,9 +57,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             lastLoginIp: userData.last_login_ip,
             preferences
           });
+          
+          // Navigate to home page on successful login
+          navigate('/');
         }
       } else {
         setCurrentUser(null);
+        if (window.location.pathname !== '/login') {
+          navigate('/login');
+        }
       }
       setIsLoading(false);
     });
@@ -60,16 +73,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate]);
 
-  const login = async (username: string, password: string) => {
+  const login = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ 
-        email: username, // Using username as email for now
+      setIsLoading(true);
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email,
         password 
       });
-      if (error) throw error;
-      return true;
+      
+      if (error) {
+        console.error('Login error:', error);
+        toast({
+          title: "Login Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      if (data.user) {
+        return true;
+      }
+      return false;
     } catch (error) {
       console.error('Login error:', error);
       toast({
@@ -78,6 +105,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         variant: "destructive",
       });
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -136,6 +165,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      navigate('/login');
     } catch (error) {
       console.error('Logout error:', error);
       toast({
