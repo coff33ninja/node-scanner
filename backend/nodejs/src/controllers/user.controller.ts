@@ -1,10 +1,14 @@
 import { Request, Response } from 'express';
-import { User, IUser } from '@/models/user.model';
-import mongoose from 'mongoose';
+import { supabase } from '../config/supabase.config';
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
-    const users = await User.find({}, '-password').sort({ createdAt: -1 });
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
     res.json(users);
   } catch (error) {
     console.error('Error fetching users:', error);
@@ -14,12 +18,18 @@ export const getAllUsers = async (req: Request, res: Response) => {
 
 export const getUserProfile = async (req: Request, res: Response) => {
   try {
-    const userId = (req.user as IUser)?._id;
-    if (!userId) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
     
-    const user = await User.findById(userId).select('-password');
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+
+    if (error) throw error;
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -32,26 +42,26 @@ export const getUserProfile = async (req: Request, res: Response) => {
 
 export const updateUserProfile = async (req: Request, res: Response) => {
   try {
-    const userId = (req.user as IUser)?._id;
-    if (!userId) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
     const { name, email, avatarUrl } = req.body;
-    const user = await User.findById(userId);
+    const { data: user, error } = await supabase
+      .from('users')
+      .update({ 
+        name: name || undefined,
+        email: email || undefined,
+        avatar_url: avatarUrl || undefined,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', session.user.id)
+      .select()
+      .single();
     
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    if (name) user.name = name;
-    if (email) user.email = email;
-    if (avatarUrl) user.avatarUrl = avatarUrl;
-
-    await user.save();
-    
-    const updatedUser = await User.findById(user._id).select('-password');
-    res.json(updatedUser);
+    if (error) throw error;
+    res.json(user);
   } catch (error) {
     console.error('Error updating user profile:', error);
     res.status(500).json({ error: 'Failed to update user profile' });

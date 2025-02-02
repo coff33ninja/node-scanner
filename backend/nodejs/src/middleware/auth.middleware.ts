@@ -1,21 +1,17 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import { supabase } from '../config/supabase.config';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_here';
-
-export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const token = req.headers.authorization?.split(' ')[1];
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (!token) {
+        if (error || !session) {
             return res.status(401).json({ message: 'Authentication required' });
         }
 
-        const decoded = jwt.verify(token, JWT_SECRET);
-        (req as any).user = decoded;
-        
+        (req as any).user = session.user;
         next();
     } catch (error) {
-        res.status(401).json({ message: 'Invalid or expired token' });
+        res.status(401).json({ message: 'Invalid session' });
     }
 };
