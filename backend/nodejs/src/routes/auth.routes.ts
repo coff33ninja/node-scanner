@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import { auth, db } from '../config/supabase.config';
 
@@ -24,7 +24,7 @@ const registerValidation = [
 ];
 
 // Registration route
-router.post('/register', registerValidation, async (req, res) => {
+router.post('/register', registerValidation, async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -34,19 +34,19 @@ router.post('/register', registerValidation, async (req, res) => {
     const { username, email, password } = req.body;
 
     // Sign up user with Supabase Auth
-    const { data: authData, error: signUpError } = await auth.signUp(email, password, { username });
+    const { user, session } = await auth.signUp(email, password, { username });
 
-    if (signUpError) {
-      return res.status(400).json({ message: signUpError.message });
+    if (!user) {
+      return res.status(400).json({ message: 'Failed to create user' });
     }
 
-    if (!authData.user) {
+    if (!user) {
       return res.status(400).json({ message: 'Failed to create user' });
     }
 
     // Create user profile
     const { data: profile, error: profileError } = await db.createUserProfile(
-      authData.user.id,
+      user.id,
       username,
       email
     );
@@ -75,17 +75,18 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    const { data, error } = await auth.signIn(email, password);
+    const { user, session, weakPassword } = await auth.signIn(email, password);
+    const error = weakPassword ? new Error('Weak password') : null;
     
     if (error) {
       return res.status(401).json({ message: error.message });
     }
 
-    const profile = await db.getUserProfile(data.user.id);
+    const profile = await db.getUserProfile(user.id);
 
     res.status(200).json({
       user: profile,
-      session: data.session,
+      session: session,
       message: 'Login successful'
     });
   } catch (error) {
@@ -97,11 +98,9 @@ router.post('/login', async (req, res) => {
 // Logout route
 router.post('/logout', async (req, res) => {
   try {
-    const { error } = await auth.signOut();
+    await auth.signOut();
     
-    if (error) {
-      return res.status(500).json({ message: error.message });
-    }
+    res.json({ message: 'Logged out successfully' });
     
     res.json({ message: 'Logged out successfully' });
   } catch (error) {
