@@ -19,10 +19,25 @@ export const loginController = async (req: Request, res: Response) => {
             });
         }
 
+        // Get user profile data
+        const { data: profile, error: profileError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', data.user.id)
+            .single();
+
+        if (profileError) {
+            console.error('Profile fetch error:', profileError);
+            return res.status(500).json({
+                status: 'error',
+                message: 'Error fetching user profile'
+            });
+        }
+
         res.json({
             status: 'success',
             data: {
-                user: data.user,
+                user: profile,
                 session: data.session
             }
         });

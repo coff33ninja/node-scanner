@@ -16,7 +16,7 @@ const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loginData, setLoginData] = useState({
-    username: "",
+    email: "",
     password: "",
   });
 
@@ -39,17 +39,17 @@ const LoginForm = () => {
         return;
       }
 
-      if (!loginData.username || !loginData.password) {
+      if (!loginData.email || !loginData.password) {
         toast({
           title: "Validation Error",
-          description: "Username and password are required",
+          description: "Email and password are required",
           variant: "destructive",
         });
         return;
       }
 
       setIsLoading(true);
-      const success = await login(loginData.username, loginData.password);
+      const success = await login(loginData.email, loginData.password);
 
       if (success) {
         toast({
@@ -60,10 +60,10 @@ const LoginForm = () => {
         // Store remember me preference
         if (rememberMe) {
           localStorage.setItem("rememberMe", "true");
-          localStorage.setItem("lastUsername", loginData.username);
+          localStorage.setItem("lastEmail", loginData.email);
         } else {
           localStorage.removeItem("rememberMe");
-          localStorage.removeItem("lastUsername");
+          localStorage.removeItem("lastEmail");
         }
         setTimeout(() => navigate("/"), 1500);
       } else {
@@ -71,7 +71,7 @@ const LoginForm = () => {
         toast({
           title: "Login Failed",
           description: attemptsRemaining > 0
-            ? `Invalid username or password. ${attemptsRemaining} attempts remaining.`
+            ? `Invalid email or password. ${attemptsRemaining} attempts remaining.`
             : "Account temporarily locked. Please try again later.",
           variant: "destructive",
         });

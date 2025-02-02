@@ -5,7 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 interface LoginFieldsProps {
   loginData: {
-    username: string;
+    email: string;
     password: string;
   };
   showPassword: boolean;
@@ -30,12 +30,13 @@ export const LoginFields = ({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="username">Username</Label>
+        <Label htmlFor="email">Email</Label>
         <Input
-          id="username"
-          value={loginData.username}
-          onChange={(e) => onDataChange("username", e.target.value)}
-          placeholder="Enter your username"
+          id="email"
+          type="email"
+          value={loginData.email}
+          onChange={(e) => onDataChange("email", e.target.value)}
+          placeholder="Enter your email"
           disabled={isLoading || isLocked}
         />
       </div>
