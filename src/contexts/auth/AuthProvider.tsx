@@ -14,54 +14,64 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log("Setting up auth state change listener");
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session);
+      setIsLoading(true);
+      
       if (session) {
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (userError) {
-          console.error('Error fetching user data:', userError);
-          setCurrentUser(null);
-          setError('Error fetching user data');
-        } else if (userData) {
-          const rawPreferences = userData.preferences as { [key: string]: any } | null;
-          const defaultPreferences = {
-            theme: 'system' as const,
-            notifications: true,
-            language: 'en'
-          };
-
-          const preferences = {
-            theme: (rawPreferences?.theme || defaultPreferences.theme) as 'light' | 'dark' | 'system',
-            notifications: Boolean(rawPreferences?.notifications ?? defaultPreferences.notifications),
-            language: String(rawPreferences?.language || defaultPreferences.language)
-          };
-
-          setCurrentUser({
-            id: userData.id,
-            username: userData.username,
-            email: userData.email,
-            name: userData.username,
-            role: userData.role as 'admin' | 'user' | 'moderator',
-            lastActive: userData.last_active,
-            avatarUrl: userData.avatar_url,
-            passwordChanged: userData.password_changed,
-            twoFactorEnabled: userData.two_factor_enabled,
-            createdAt: userData.created_at,
-            updatedAt: userData.updated_at,
-            isActive: userData.is_active,
-            lastLoginIp: userData.last_login_ip,
-            preferences
-          });
+        try {
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
           
-          // Navigate to home page on successful login
-          navigate('/');
+          if (userError) {
+            console.error('Error fetching user data:', userError);
+            setCurrentUser(null);
+            setError('Error fetching user data');
+          } else if (userData) {
+            console.log('User data fetched:', userData);
+            const rawPreferences = userData.preferences as { [key: string]: any } | null;
+            const defaultPreferences = {
+              theme: 'system' as const,
+              notifications: true,
+              language: 'en'
+            };
+
+            const preferences = {
+              theme: (rawPreferences?.theme || defaultPreferences.theme) as 'light' | 'dark' | 'system',
+              notifications: Boolean(rawPreferences?.notifications ?? defaultPreferences.notifications),
+              language: String(rawPreferences?.language || defaultPreferences.language)
+            };
+
+            setCurrentUser({
+              id: userData.id,
+              username: userData.username,
+              email: userData.email,
+              name: userData.username,
+              role: userData.role as 'admin' | 'user' | 'moderator',
+              lastActive: userData.last_active,
+              avatarUrl: userData.avatar_url,
+              passwordChanged: userData.password_changed,
+              twoFactorEnabled: userData.two_factor_enabled,
+              createdAt: userData.created_at,
+              updatedAt: userData.updated_at,
+              isActive: userData.is_active,
+              lastLoginIp: userData.last_login_ip,
+              preferences
+            });
+            
+            console.log('Navigating to home after setting user');
+            navigate('/');
+          }
+        } catch (error) {
+          console.error('Error in auth state change:', error);
+          setError('Error processing authentication');
         }
       } else {
+        console.log('No session, clearing user');
         setCurrentUser(null);
         if (window.location.pathname !== '/login') {
           navigate('/login');
@@ -78,6 +88,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
+      console.log('Attempting login with email:', email);
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email,
         password 
@@ -94,6 +105,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       if (data.user) {
+        console.log('Login successful:', data.user);
         return true;
       }
       return false;
@@ -164,8 +176,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     try {
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      navigate('/login');
+      if (error) {
+        console.error('Logout error:', error);
+        toast({
+          title: "Logout Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        navigate('/login');
+      }
     } catch (error) {
       console.error('Logout error:', error);
       toast({

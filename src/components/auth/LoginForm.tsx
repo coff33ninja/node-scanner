@@ -49,7 +49,9 @@ const LoginForm = () => {
       }
 
       setIsLoading(true);
+      console.log("Attempting login with:", loginData.email);
       const success = await login(loginData.email, loginData.password);
+      console.log("Login success:", success);
 
       if (success) {
         toast({
@@ -57,7 +59,6 @@ const LoginForm = () => {
           description: "Login successful!",
         });
         resetAttempts();
-        // Store remember me preference
         if (rememberMe) {
           localStorage.setItem("rememberMe", "true");
           localStorage.setItem("lastEmail", loginData.email);
@@ -65,7 +66,8 @@ const LoginForm = () => {
           localStorage.removeItem("rememberMe");
           localStorage.removeItem("lastEmail");
         }
-        setTimeout(() => navigate("/"), 1500);
+        console.log("Navigating to home page...");
+        navigate("/");
       } else {
         incrementAttempts();
         toast({
@@ -77,6 +79,7 @@ const LoginForm = () => {
         });
       }
     } catch (error) {
+      console.error("Login error:", error);
       toast({
         title: "Error",
         description: "Authentication failed. Please try again.",
