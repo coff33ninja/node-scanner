@@ -157,3 +157,19 @@ export class NetworkScanner {
     });
   }
 }
+
+// Exporting the required functions
+export const scanNetwork = async (ipRange) => {
+  const scanner = new NetworkScanner();
+  return await scanner.scanNetwork(ipRange);
+};
+
+export const wakeDevice = async (macAddress) => {
+  const scanner = new NetworkScanner();
+  return await scanner.wakeOnLan(macAddress);
+};
+
+export const shutdownDevice = async (ip, username, password) => {
+  const scanner = new NetworkScanner();
+  return await scanner.shutdownDevice(ip, username, password);
+};

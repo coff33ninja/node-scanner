@@ -1,9 +1,8 @@
 import express from 'express';
 import cors from 'cors';
-import { serverConfig } from './config/server.config';
+import { serverConfig } from './config/server.config'; // Removed .js extension
 import { setupPassport } from './config/passport';
 import { errorHandler } from './middleware/errorHandler';
-import { authRoutes } from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import networkRoutes from './routes/network.routes';
 import databaseRoutes from './routes/database.routes';
@@ -11,6 +10,7 @@ import passport from 'passport';
 import { initializeCleanDatabase } from './utils/dbInit';
 import fs from 'fs';
 import path from 'path';
+import { networkScanController } from './controllers/networkScan.controller'; // Importing the network scan controller
 
 const app = express();
 
@@ -37,10 +37,10 @@ app.get('/health', (req, res) => {
 });
 
 // Routes
-app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/network', networkRoutes);
 app.use('/api/database', databaseRoutes);
+app.post('/api/network/scan', networkScanController.scan); // Adding the network scan route
 
 // Error handling
 app.use(errorHandler);

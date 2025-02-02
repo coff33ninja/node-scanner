@@ -1,5 +1,4 @@
-import { API_ENDPOINTS, getAuthHeaders } from '@/config/api';
-import { supabase } from '@/integrations/supabase/client';
+import { API_ENDPOINTS, getAuthHeaders } from 'config/api';
 
 export interface NetworkDevice {
   id?: string;
@@ -21,7 +20,7 @@ export interface ScanOptions {
 
 export const scanNetwork = async (options: ScanOptions): Promise<NetworkDevice[]> => {
   try {
-    console.log('Starting network scan with options:', options);
+    console.log('Starting ARP network scan with options:', options);
     
     const response = await fetch(API_ENDPOINTS.NETWORK_SCAN, {
       method: 'POST',
@@ -37,66 +36,6 @@ export const scanNetwork = async (options: ScanOptions): Promise<NetworkDevice[]
     
     const devices = await response.json();
     console.log('Scanned devices:', devices);
-    
-    // Get session and check for user
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData?.session?.user?.id;
-
-    if (!userId) {
-      console.warn('No user ID found, skipping device storage');
-      return devices;
-    }
-
-    for (const device of devices) {
-      if (!device.mac) {
-        console.warn('Device missing MAC address:', device);
-        continue;
-      }
-
-      const deviceData = {
-        name: device.name || `Device (${device.ip})`,
-        mac_address: device.mac,
-        ip_address: device.ip,
-        user_id: userId,
-        last_scan: new Date().toISOString(),
-        vendor: device.vendor,
-        hostname: device.hostname,
-        open_ports: device.openPorts || []
-      };
-
-      console.log('Storing device data:', deviceData);
-
-      const { data: existingDevice, error: queryError } = await supabase
-        .from('devices')
-        .select()
-        .eq('mac_address', device.mac)
-        .eq('user_id', userId)
-        .single();
-
-      if (queryError && queryError.code !== 'PGRST116') {
-        console.error('Error checking existing device:', queryError);
-        continue;
-      }
-
-      if (existingDevice) {
-        const { error: updateError } = await supabase
-          .from('devices')
-          .update(deviceData)
-          .eq('id', existingDevice.id);
-
-        if (updateError) {
-          console.error('Error updating device:', updateError);
-        }
-      } else {
-        const { error: insertError } = await supabase
-          .from('devices')
-          .insert(deviceData);
-
-        if (insertError) {
-          console.error('Error inserting device:', insertError);
-        }
-      }
-    }
     
     return devices;
   } catch (error) {

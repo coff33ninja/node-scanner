@@ -3,15 +3,11 @@ import { DeviceCard } from "../components/DeviceCard";
 import { AddDeviceDialog } from "../components/AddDeviceDialog";
 import { DeviceStats } from "../components/DeviceStats";
 import { NetworkScanButton } from "../components/NetworkScanButton";
-import { useDevices } from "../hooks/useDevices";
 import { useNetworkScanner } from "../hooks/useNetworkScanner";
 import { Loader2 } from "lucide-react";
 
 const Index = () => {
-  const { devices: savedDevices, isLoading: isSavedLoading, addDevice, deleteDevice } = useDevices();
-  const { devices: networkDevices, isLoading: isNetworkLoading } = useNetworkScanner();
-
-  const isLoading = isSavedLoading || isNetworkLoading;
+  const { devices: networkDevices, isLoading } = useNetworkScanner();
 
   if (isLoading) {
     return (
@@ -22,29 +18,6 @@ const Index = () => {
       </Layout>
     );
   }
-
-  // Combine saved and network devices, preferring saved device data
-  const allDevices = networkDevices.map(networkDevice => {
-    const savedDevice = savedDevices?.find(d => d.macAddress === networkDevice.mac);
-    if (savedDevice) {
-      return {
-        name: savedDevice.name,
-        ip: savedDevice.ipAddress || networkDevice.ip,
-        mac: savedDevice.macAddress,
-        status: networkDevice.status,
-        lastSeen: savedDevice.updatedAt || networkDevice.lastSeen,
-        openPorts: networkDevice.openPorts
-      };
-    }
-    return {
-      name: networkDevice.name,
-      ip: networkDevice.ip,
-      mac: networkDevice.mac,
-      status: networkDevice.status,
-      lastSeen: networkDevice.lastSeen,
-      openPorts: networkDevice.openPorts
-    };
-  });
 
   return (
     <Layout>
@@ -57,27 +30,17 @@ const Index = () => {
         </div>
         <div className="flex gap-2">
           <NetworkScanButton />
-          <AddDeviceDialog onDeviceAdd={(device) => addDevice.mutate({
-            name: device.name,
-            macAddress: device.mac,
-            ipAddress: device.ip
-          })} />
+          <AddDeviceDialog />
         </div>
       </div>
 
-      <DeviceStats devices={allDevices} />
+      <DeviceStats devices={networkDevices} />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {allDevices.map((device) => (
+        {networkDevices.map((device) => (
           <DeviceCard
             key={device.mac}
             {...device}
-            onDelete={() => {
-              const savedDevice = savedDevices?.find(d => d.macAddress === device.mac);
-              if (savedDevice) {
-                deleteDevice.mutate(savedDevice.id);
-              }
-            }}
           />
         ))}
       </div>
