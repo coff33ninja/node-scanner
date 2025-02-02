@@ -11,16 +11,22 @@ import Users from "./pages/Users";
 import Login from "./pages/Login";
 import Privacy from "./pages/Privacy";
 import { useAuth } from "./contexts/auth/AuthContext";
+import { Loader2 } from "lucide-react";
 
 // Protected Route wrapper component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { currentUser, isLoading } = useAuth();
   
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
   
   if (!currentUser) {
+    console.log("No current user, redirecting to login");
     return <Navigate to="/login" replace />;
   }
   
@@ -39,15 +45,28 @@ const queryClient = new QueryClient({
 
 function AppRoutes() {
   const { currentUser, isLoading } = useAuth();
+  console.log("AppRoutes - currentUser:", currentUser, "isLoading:", isLoading);
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   return (
     <Routes>
-      <Route path="/login" element={currentUser ? <Navigate to="/" replace /> : <Login />} />
-      <Route path="/account" element={<Account />} />
+      <Route 
+        path="/login" 
+        element={
+          currentUser ? (
+            <Navigate to="/" replace />
+          ) : (
+            <Login />
+          )
+        } 
+      />
       <Route path="/privacy" element={<Privacy />} />
       <Route
         path="/"
@@ -66,6 +85,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/account"
+        element={
+          <ProtectedRoute>
+            <Account />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/users"
         element={
           <ProtectedRoute>
@@ -73,7 +100,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
