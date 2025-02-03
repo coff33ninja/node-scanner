@@ -9,6 +9,14 @@ export interface NetworkDevice {
   status: 'online' | 'offline';
   lastSeen: string;
   group?: string;
+  metrics?: {
+    bandwidth: {
+      upload: number;
+      download: number;
+    };
+    latency: number;
+  };
+  openPorts?: number[];
 }
 
 export interface ScanOptions {
@@ -79,5 +87,44 @@ export const shutdownDevice = async (ip: string, username?: string, password?: s
   } catch (error) {
     console.error('Error shutting down device:', error);
     throw error;
+  }
+};
+
+export const getDeviceMetrics = async (ip: string): Promise<any> => {
+  try {
+    const response = await fetch(`${API_ENDPOINTS.BASE_URL}/network/metrics/${ip}`, {
+      headers: getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch device metrics');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting device metrics:', error);
+    throw error;
+  }
+};
+
+export const scheduleDeviceOperation = async (
+  deviceId: string,
+  operation: 'wake' | 'shutdown',
+  schedule: string
+): Promise<boolean> => {
+  try {
+    const response = await fetch(`${API_ENDPOINTS.BASE_URL}/network/schedule`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ deviceId, operation, schedule }),
+    });
+    
+    return response.ok;
+  } catch (error) {
+    console.error('Error scheduling device operation:', error);
+    return false;
   }
 };

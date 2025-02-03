@@ -1,8 +1,10 @@
 import Layout from "../components/Layout";
 import { DeviceCard } from "../components/DeviceCard";
+import { NetworkTopology } from "../components/NetworkTopology";
+import { DeviceGroups } from "../components/DeviceGroups";
+import { NetworkMetrics } from "../components/NetworkMetrics";
 import { AddDeviceDialog } from "../components/AddDeviceDialog";
 import { DeviceStats } from "../components/DeviceStats";
-import { PerformanceMetrics } from "../components/PerformanceMetrics";
 import { useEffect, useState } from "react";
 import { NetworkDevice } from "../utils/networkUtils";
 import { useToast } from "../components/ui/use-toast";
@@ -112,24 +114,29 @@ const Index = () => {
         <AddDeviceDialog onDeviceAdd={handleAddDevice} />
       </div>
 
-      <PerformanceMetrics devices={devices} />
+      <div className="grid gap-6">
+        <NetworkMetrics devices={devices} />
+        
+        <div className="grid gap-6 md:grid-cols-2">
+          <NetworkTopology devices={devices} />
+          <DeviceGroups />
+        </div>
 
-      <div className="mt-8">
         <DeviceStats devices={devices} />
-      </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {Array.isArray(devices) && devices.map((device: NetworkDevice) => (
-          <DeviceCard
-            key={device.ip}
-            name={device.name || `Device (${device.ip})`}
-            ip={device.ip}
-            mac={device.mac}
-            status={device.status}
-            lastSeen={device.lastSeen}
-            onDelete={() => handleDeleteDevice(device)}
-          />
-        ))}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {Array.isArray(devices) && devices.map((device: NetworkDevice) => (
+            <DeviceCard
+              key={device.ip}
+              name={device.name || `Device (${device.ip})`}
+              ip={device.ip}
+              mac={device.mac}
+              status={device.status}
+              lastSeen={device.lastSeen}
+              onDelete={() => handleDeleteDevice(device)}
+            />
+          ))}
+        </div>
       </div>
     </Layout>
   );
