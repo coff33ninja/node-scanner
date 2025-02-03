@@ -1,46 +1,38 @@
-import { deviceScanner } from './utils/deviceScanner';
+import { deviceDiscovery } from './utils/deviceDiscovery';
+import { portScanner } from './utils/portScanner';
+import { networkMetrics } from './utils/networkMetrics';
 import { powerManager } from './utils/powerManager';
-import { networkMonitor } from './utils/networkMonitor';
 
 export class NetworkScanner {
   constructor() {
-    this.deviceScanner = deviceScanner;
+    this.deviceDiscovery = deviceDiscovery;
+    this.portScanner = portScanner;
+    this.networkMetrics = networkMetrics;
     this.powerManager = powerManager;
-    this.networkMonitor = networkMonitor;
   }
 
   async scanNetwork(ipRange) {
     try {
-      const devices = [];
+      if (!ipRange) {
+        ipRange = await this.deviceDiscovery.getLocalNetwork();
+      }
+
       const [baseIp, subnet] = ipRange.split('/');
       const baseIpParts = baseIp.split('.');
       const hosts = Math.pow(2, 32 - parseInt(subnet));
       
-      // Ping sweep for faster initial discovery
-      const activeIps = [];
-      for (let i = 1; i < hosts - 1; i++) {
-        const ip = `${baseIpParts[0]}.${baseIpParts[1]}.${baseIpParts[2]}.${i}`;
-        const isReachable = await this.deviceScanner.pingHost(ip);
-        if (isReachable) {
-          activeIps.push(ip);
-        }
-      }
-
-      // Detailed scan for active IPs
-      for (const ip of activeIps) {
-        const mac = await this.deviceScanner.getMacFromArp(ip);
-        const openPorts = await this.deviceScanner.scanPorts(ip);
+      const devices = [];
+      
+      // Scan network in parallel with batching
+      const batchSize = 10;
+      for (let i = 0; i < hosts; i += batchSize) {
+        const batch = Array.from({ length: Math.min(batchSize, hosts - i) }, (_, j) => {
+          const ip = `${baseIpParts[0]}.${baseIpParts[1]}.${baseIpParts[2]}.${i + j + 1}`;
+          return this.scanDevice(ip);
+        });
         
-        if (openPorts.length > 0 || mac) {
-          devices.push({
-            ip,
-            mac: mac || 'Unknown',
-            status: 'online',
-            name: `Device (${ip})`,
-            lastSeen: new Date().toISOString(),
-            openPorts
-          });
-        }
+        const results = await Promise.all(batch);
+        devices.push(...results.filter(Boolean));
       }
 
       return devices;
@@ -50,16 +42,38 @@ export class NetworkScanner {
     }
   }
 
+  async scanDevice(ip) {
+    const isReachable = await this.deviceDiscovery.pingHost(ip);
+    if (!isReachable) return null;
+
+    const [mac, hostname, openPorts] = await Promise.all([
+      this.deviceDiscovery.getMacAddress(ip),
+      this.deviceDiscovery.getHostname(ip),
+      this.portScanner.scanCommonPorts(ip)
+    ]);
+
+    if (!mac && openPorts.length === 0) return null;
+
+    return {
+      ip,
+      mac: mac || 'Unknown',
+      name: hostname || `Device (${ip})`,
+      status: 'online',
+      lastSeen: new Date().toISOString(),
+      openPorts
+    };
+  }
+
+  async getDeviceMetrics(ip) {
+    return this.networkMetrics.collectMetrics(ip);
+  }
+
   async wakeOnLan(macAddress) {
     return this.powerManager.wakeOnLan(macAddress);
   }
 
   async shutdownDevice(ip, username, password) {
     return this.powerManager.shutdownDevice(ip, username, password);
-  }
-
-  async getDeviceMetrics(ip) {
-    return this.networkMonitor.getDeviceMetrics(ip);
   }
 }
 
