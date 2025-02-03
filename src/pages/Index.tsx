@@ -5,6 +5,7 @@ import { DeviceGroups } from "../components/DeviceGroups";
 import { NetworkMetrics } from "../components/NetworkMetrics";
 import { AddDeviceDialog } from "../components/AddDeviceDialog";
 import { DeviceStats } from "../components/DeviceStats";
+import { ServerStatusDashboard } from "../components/ServerStatusDashboard";
 import { useEffect, useState } from "react";
 import { NetworkDevice } from "../utils/networkUtils";
 import { useToast } from "../components/ui/use-toast";
@@ -106,15 +107,17 @@ const Index = () => {
     <Layout>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Network Devices</h1>
+          <h1 className="text-3xl font-bold">Network Dashboard</h1>
           <p className="text-muted-foreground">
-            Manage and monitor your network devices
+            Monitor your network devices and server nodes
           </p>
         </div>
         <AddDeviceDialog onDeviceAdd={handleAddDevice} />
       </div>
 
       <div className="grid gap-6">
+        <ServerStatusDashboard />
+        
         <NetworkMetrics devices={devices} />
         
         <div className="grid gap-6 md:grid-cols-2">
