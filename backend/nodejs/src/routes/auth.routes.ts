@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import jwt from 'jsonwebtoken';
-import { User, IUser } from '../models/user.model';
+import { UserModel, User, UserPreferences } from '../models/user.model';
 import { errorHandler } from '../middleware/errorHandler';
 
 const router = Router();
@@ -35,6 +35,8 @@ interface RegisterRequestBody {
   password: string;
   name: string;
   language?: string;
+  theme?: string;
+  notifications?: boolean;
 }
 
 // Registration route
@@ -48,63 +50,68 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-    const { username, email, password, name } = req.body;
+      const { username, email, password, name, language, theme, notifications } = req.body;
 
-    const existingUser = await User.findOne({
-      $or: [{ username }, { email }],
-    });
+      // Check if user already exists
+      const existingUser = await UserModel.findOne({ username });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Username already exists' });
+      }
 
-    if (existingUser) {
-      return res.status(400).json({ message: 'Username or email already exists' });
+      const existingEmail = await UserModel.findOne({ email });
+      if (existingEmail) {
+        return res.status(400).json({ message: 'Email already exists' });
+      }
+
+      // Create user preferences
+      const preferences: UserPreferences = {
+        language: language || 'en',
+        theme: theme || 'system',
+        notifications: notifications !== undefined ? notifications : true,
+      };
+
+      // Create new user
+      const user = await UserModel.create({
+        username,
+        email,
+        password,
+        name,
+        preferences,
+        role: 'user',
+        isActive: true,
+      });
+
+      if (!user) {
+        return res.status(500).json({ message: 'Failed to create user' });
+      }
+
+      // Generate tokens
+      const token = jwt.sign(
+        { userId: user.id },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '1h' }
+      );
+
+      const refreshToken = jwt.sign(
+        { userId: user.id },
+        process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key',
+        { expiresIn: '7d' }
+      );
+
+      // Remove sensitive data before sending response
+      const { password: _, ...userData } = user;
+
+      res.status(201).json({
+        user: userData,
+        token,
+        refreshToken,
+      });
+    } catch (error) {
+      console.error('Registration error:', error);
+      errorHandler(error, req, res);
     }
-
-    const user = await User.create({
-      username,
-      email,
-      password,
-      name,
-      preferences: {
-        language: req.body.language || 'en',
-        theme: 'system',
-        notifications: true,
-      },
-    });
-
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '1h' }
-    );
-
-    const refreshToken = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key',
-      { expiresIn: '7d' }
-    );
-
-    const userData = {
-      id: user._id,
-      username: user.username,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      lastActive: user.lastActive,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-      isActive: user.isActive,
-      preferences: user.preferences,
-    };
-
-    res.status(201).json({
-      user: userData,
-      token,
-      refreshToken,
-    });
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ message: 'Server error during registration' });
   }
-});
+);
 
 interface LoginRequestBody {
   username: string;
@@ -112,57 +119,102 @@ interface LoginRequestBody {
 }
 
 // Login route
-router.post('/login', async (req: Request<object, object, LoginRequestBody>, res: Response) => {
+router.post(
+  '/login',
+  [
+    body('username').trim().notEmpty().withMessage('Username is required'),
+    body('password').notEmpty().withMessage('Password is required'),
+  ],
+  async (req: Request<object, object, LoginRequestBody>, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { username, password } = req.body;
+
+      // Find user
+      const user = await UserModel.findOne({ username });
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid username or password' });
+      }
+
+      // Verify password
+      const isMatch = await UserModel.comparePassword(user, password);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Invalid username or password' });
+      }
+
+      // Update last active timestamp
+      await UserModel.update(user.id!, { lastActive: new Date() });
+
+      // Generate tokens
+      const token = jwt.sign(
+        { userId: user.id },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '1h' }
+      );
+
+      const refreshToken = jwt.sign(
+        { userId: user.id },
+        process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key',
+        { expiresIn: '7d' }
+      );
+
+      // Remove sensitive data before sending response
+      const { password: _, ...userData } = user;
+
+      res.status(200).json({
+        user: userData,
+        token,
+        refreshToken,
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      errorHandler(error, req, res);
+    }
+  }
+);
+
+// Refresh token route
+router.post('/refresh-token', async (req: Request, res: Response) => {
   try {
-    const { username, password } = req.body;
+    const { refreshToken } = req.body;
 
-    if (!username || !password) {
-      return res.status(400).json({ message: 'Username and password are required' });
+    if (!refreshToken) {
+      return res.status(400).json({ message: 'Refresh token is required' });
     }
 
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid username or password' });
-    }
+    // Verify refresh token
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key'
+    ) as { userId: number };
 
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid username or password' });
-    }
-
-    const token = jwt.sign(
-      { userId: user._id },
+    // Generate new tokens
+    const newToken = jwt.sign(
+      { userId: decoded.userId },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '1h' }
     );
 
-    const refreshToken = jwt.sign(
-      { userId: user._id },
+    const newRefreshToken = jwt.sign(
+      { userId: decoded.userId },
       process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key',
       { expiresIn: '7d' }
     );
 
-    const userData = {
-      id: user._id,
-      username: user.username,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      lastActive: user.lastActive,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-      isActive: user.isActive,
-      preferences: user.preferences,
-    };
-
-    res.status(200).json({
-      user: userData,
-      token,
-      refreshToken,
+    res.json({
+      token: newToken,
+      refreshToken: newRefreshToken,
     });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error during login' });
+    console.error('Token refresh error:', error);
+    if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({ message: 'Invalid refresh token' });
+    }
+    errorHandler(error, req, res);
   }
 });
 
