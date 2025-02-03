@@ -47,19 +47,4 @@ db.exec(`
     );
 `);
 
-// Check if admin user exists, if not create it
-const adminUser = db.prepare('SELECT * FROM users WHERE username = ?').get('admin');
-
-if (!adminUser) {
-    const salt = bcrypt.genSaltSync(10);
-    const hashedPassword = bcrypt.hashSync('abcd1234!', salt);
-    
-    db.prepare(`
-        INSERT INTO users (username, email, password, role)
-        VALUES (?, ?, ?, ?)
-    `).run('admin', 'admin@abcd.1234', hashedPassword, 'admin');
-    
-    console.log('Default admin user created');
-}
-
 export default db;

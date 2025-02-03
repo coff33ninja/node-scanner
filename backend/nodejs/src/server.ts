@@ -20,7 +20,9 @@ app.use(auditLogger);
 app.use('/api/auth', authRoutes);
 
 // Error handling middleware
-app.use(errorHandler);
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    errorHandler(err, req, res, next);
+});
 
 const PORT = serverConfig.port || 5000;
 app.listen(PORT, () => {
