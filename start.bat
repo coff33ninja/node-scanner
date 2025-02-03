@@ -1,0 +1,6 @@
+@echo off
+echo Starting backend server...
+start cmd /k "cd backend\nodejs && npm run dev"
+echo Starting frontend server...
+start cmd /k "npm run dev"
+rem This command will start the frontend server from the root folder
