@@ -2,33 +2,63 @@
 
 ## Project Structure
 
-### Backend Structure
+### Frontend
+- `src/components/` - React components
+  - `ui/` - Reusable UI components using shadcn/ui
+  - `device-settings/` - Device configuration components
+  - `metrics/` - Performance and network metrics visualization
+  - `network-scan/` - Network scanning and device discovery
+  - `ServerStatusDashboard.tsx` - Real-time server monitoring
+  - `NetworkTopology.tsx` - Network topology visualization
+  - `NodeManagement.tsx` - Server node management interface
 
-- `backend/nodejs/src/config/`: Configuration files
-- `backend/nodejs/src/controllers/`: Request handlers
-- `backend/nodejs/src/models/`: Database models
-- `backend/nodejs/src/routes/`: API routes
-- `backend/nodejs/src/services/`: Database interactions
-- `backend/python/`: Python scripts for additional functionality
+### Backend
+- `backend/nodejs/src/`
+  - `config/` - Configuration files
+  - `controllers/` - Request handlers
+  - `routes/` - API routes
+  - `services/` - Business logic
+  - `utils/` - Helper functions
+  - `models/` - Data models
+  - `middleware/` - Express middleware
 
-### Frontend Structure
+## Key Features
+1. Server Node Management
+   - Real-time node status monitoring
+   - Node authentication
+   - Performance metrics visualization
+   - Network topology mapping
 
-- `frontend/src/`: Main source directory
-- `frontend/src/components/`: React components
-- `frontend/src/pages/`: Page components
-- `frontend/src/services/`: API interactions
+2. Device Management
+   - Network device discovery
+   - Device status monitoring
+   - Wake-on-LAN support
+   - Device grouping
 
-## Reference Files
+3. Security
+   - JWT-based node authentication
+   - Secure hub-node communication
+   - Rate limiting
+   - SSL/TLS support (planned)
 
-The project includes reference files documenting patterns and structures:
+## Getting Started
 
-- `backend/nodejs/src/reference.json`: Backend patterns
-- `src/reference.json`: Frontend patterns
+1. Install dependencies:
+```bash
+npm install
+```
 
-These files serve as documentation for:
-- Import patterns
-- Type definitions
-- Controller patterns
-- Component structures
-- Error handling
-- Security implementations
+2. Set up environment variables:
+```bash
+cp .env.example .env
+```
+
+3. Start development server:
+```bash
+npm run dev
+```
+
+4. Run tests:
+```bash
+npm test
+```

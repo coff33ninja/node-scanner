@@ -1,37 +1,60 @@
 # Troubleshooting Guide
 
-## Backend Issues
+## Common Issues
 
-### SQLite Connection Failed
+### Node Connection Problems
 
-**Problem**: Database connection errors
-**Solutions**:
-- Verify database file path in `.env`
-- Ensure SQLite file is accessible
-- Check file permissions
+1. **Node Cannot Connect to Hub**
+   - Verify hub URL is correct
+   - Check network connectivity
+   - Ensure authentication tokens are valid
+   - Verify port is not blocked by firewall
 
-### Port Already in Use
+2. **Authentication Failures**
+   - Check JWT token expiration
+   - Verify secret keys match
+   - Ensure clock synchronization
 
-**Problem**: Cannot start server
-**Solutions**:
-- Change `PORT` in `.env`
-- Check for other services using port 5000
-- Kill existing process using the port
+### Device Discovery Issues
 
-## Frontend Issues
+1. **Devices Not Found**
+   - Check network subnet configuration
+   - Verify device is powered on
+   - Ensure no firewall blocking
+   - Check MAC address format
 
-### Login/Register Not Working
+2. **Wake-on-LAN Not Working**
+   - Verify device supports WoL
+   - Check MAC address is correct
+   - Ensure broadcast packets allowed
 
-**Problem**: Authentication issues
-**Solutions**:
-- Verify backend is running
-- Check browser console for errors
-- Ensure CORS settings match
+## Performance Issues
 
-### Network Errors
+1. **High CPU Usage**
+   - Reduce scan frequency
+   - Optimize network queries
+   - Check for infinite loops
+   - Monitor background tasks
 
-**Problem**: API communication issues
-**Solutions**:
-- Verify backend URL
-- Check network connectivity
-- Review CORS settings
+2. **Memory Leaks**
+   - Check for unsubscribed observers
+   - Monitor websocket connections
+   - Verify cleanup on component unmount
+
+## Debug Logs
+
+Enable debug logging:
+```typescript
+{
+  level: 'debug',
+  format: 'json',
+  filename: './logs/app.log'
+}
+```
+
+## Support
+
+For additional support:
+1. Check GitHub issues
+2. Join Discord community
+3. Contact maintainers

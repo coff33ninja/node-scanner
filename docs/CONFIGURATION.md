@@ -2,35 +2,70 @@
 
 ## Server Modes
 
-The application can run in three modes:
-- **Standalone**: Single server setup (default)
-- **Hub**: Central server that receives reports from nodes
-- **Node**: Server instance that reports to a hub
+### Hub Mode
+The hub server acts as the central coordinator for all nodes in the network.
 
-### Environment Configuration
-
-Set the server mode in your `.env` file:
-```env
-SERVER_MODE=standalone  # or 'hub' or 'node'
-HUB_URL=http://localhost:5000  # Required if SERVER_MODE=node
+Configuration:
+```typescript
+{
+  isHub: true,
+  port: 5000,
+  heartbeatInterval: 30000
+}
 ```
 
-### Node-Hub Communication
-- Nodes report to the hub every 30 seconds
-- Metrics include CPU usage, memory usage, and network statistics
-- Each node maintains its own database while sending relevant data to the hub
+### Node Mode
+Nodes connect to the hub and report their status and metrics.
+
+Configuration:
+```typescript
+{
+  isHub: false,
+  hubUrl: "http://hub-server:5000",
+  heartbeatInterval: 30000
+}
+```
+
+## Environment Variables
+
+```env
+NODE_ENV=development
+PORT=5000
+NODE_JWT_SECRET=your-secret-key
+DB_PATH=./data/network.db
+```
+
+## Node-Hub Communication
+
+1. Authentication
+   - JWT-based authentication
+   - Token refresh mechanism
+   - Secure websocket connections
+
+2. Heartbeat System
+   - Regular status updates
+   - Performance metrics collection
+   - Node health monitoring
+
+3. Data Synchronization
+   - Device information sync
+   - Network topology updates
+   - Configuration changes
 
 ## Security Configuration
 
-### JWT Settings
-```env
-JWT_SECRET=your_jwt_secret_key_here
-JWT_REFRESH_SECRET=your_jwt_refresh_secret_key_here
-JWT_EXPIRES_IN=1h
-JWT_REFRESH_EXPIRES_IN=7d
+1. Rate Limiting
+```typescript
+{
+  windowMs: 15 * 60 * 1000,
+  max: 100
+}
 ```
 
-### CORS Configuration
-```env
-CORS_ORIGIN=http://localhost:3000
+2. SSL/TLS (Planned)
+```typescript
+{
+  key: "path/to/key.pem",
+  cert: "path/to/cert.pem"
+}
 ```
