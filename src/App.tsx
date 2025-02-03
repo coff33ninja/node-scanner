@@ -5,6 +5,7 @@ import { TooltipProvider } from "@radix-ui/react-tooltip";
 import { Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Settings from "./pages/Settings";
+import NodeManagement from "./pages/NodeManagement";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,6 +25,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/nodes" element={<NodeManagement />} />
             </Routes>
           </QueryClientProvider>
         </TooltipProvider>

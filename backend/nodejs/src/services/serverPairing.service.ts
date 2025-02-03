@@ -3,6 +3,10 @@ import { serverPairingConfig } from '../config/server.pairing.config';
 import db from '../config/database';
 import { networkScanner } from '../utils/networkScanner';
 import { EventEmitter } from 'events';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+
+const JWT_SECRET = process.env.NODE_JWT_SECRET || 'node-secret-key';
 
 class ServerPairingService extends EventEmitter {
   private nodes: Map<string, ServerNode> = new Map();
@@ -25,7 +29,8 @@ class ServerPairingService extends EventEmitter {
         hub_url TEXT,
         last_seen TEXT,
         status TEXT DEFAULT 'inactive',
-        metrics TEXT
+        metrics TEXT,
+        auth_token TEXT
       );
     `);
   }
@@ -56,15 +61,32 @@ class ServerPairingService extends EventEmitter {
       status: 'active'
     };
 
-    await this.updateNodeStatus(nodeInfo);
+    const authToken = this.generateAuthToken(nodeInfo.id);
+    await this.updateNodeStatus({ ...nodeInfo, authToken });
     this.startHeartbeat();
+    return authToken;
   }
 
-  private async updateNodeStatus(node: ServerNode) {
+  private generateAuthToken(nodeId: string): string {
+    return jwt.sign({ nodeId }, JWT_SECRET, { expiresIn: '7d' });
+  }
+
+  async authenticateNode(nodeId: string): Promise<string> {
+    const node = await this.getNodeById(nodeId);
+    if (!node) {
+      throw new Error('Node not found');
+    }
+    
+    const authToken = this.generateAuthToken(nodeId);
+    await this.updateNodeStatus({ ...node, authToken });
+    return authToken;
+  }
+
+  private async updateNodeStatus(node: ServerNode & { authToken?: string }) {
     const stmt = db.prepare(`
       INSERT OR REPLACE INTO server_nodes 
-      (id, name, host, port, is_hub, hub_url, last_seen, status, metrics)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, name, host, port, is_hub, hub_url, last_seen, status, metrics, auth_token)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -76,11 +98,24 @@ class ServerPairingService extends EventEmitter {
       node.hubUrl || null,
       new Date().toISOString(),
       node.status,
-      JSON.stringify(node.metrics || {})
+      JSON.stringify(node.metrics || {}),
+      node.authToken || null
     );
 
     this.nodes.set(node.id, node);
     this.emit('nodeUpdated', node);
+  }
+
+  async getNodeById(nodeId: string): Promise<ServerNode | null> {
+    const stmt = db.prepare('SELECT * FROM server_nodes WHERE id = ?');
+    const row = stmt.get(nodeId);
+    if (!row) return null;
+    
+    return {
+      ...row,
+      isHub: Boolean(row.is_hub),
+      metrics: row.metrics ? JSON.parse(row.metrics) : undefined
+    };
   }
 
   async getNodes(): Promise<ServerNode[]> {
@@ -98,11 +133,16 @@ class ServerPairingService extends EventEmitter {
       if (!this.isHub && this.hubUrl) {
         try {
           const metrics = await this.collectMetrics();
+          const node = this.nodes.values().next().value;
+          
           const response = await fetch(`${this.hubUrl}/api/heartbeat`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${node.authToken}`
+            },
             body: JSON.stringify({
-              nodeId: this.nodes.values().next().value?.id,
+              nodeId: node.id,
               metrics
             })
           });

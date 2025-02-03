@@ -18,6 +18,11 @@ export const API_ENDPOINTS = {
   USERS: `${API_BASE_URL}/users`,
   USER_PROFILE: `${API_BASE_URL}/users/profile`,
   USER_SETTINGS: `${API_BASE_URL}/users/settings`,
+
+  // Server node management endpoints
+  SERVER_NODES: `${API_BASE_URL}/server/nodes`,
+  SERVER_NODE_AUTH: (nodeId: string) => `${API_BASE_URL}/server/nodes/${nodeId}/authenticate`,
+  SERVER_NODE_RESTART: (nodeId: string) => `${API_BASE_URL}/server/nodes/${nodeId}/restart`,
 };
 
 export const getAuthHeaders = () => {
