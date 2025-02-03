@@ -1,37 +1,46 @@
 import { NetworkDevice } from './networkUtils';
 
-export interface NetworkMetrics {
-  bandwidth: {
-    upload: number;
-    download: number;
+export interface DeviceMetrics {
+  status?: 'online' | 'offline';
+  metrics?: {
+    bandwidth: {
+      upload: number;
+      download: number;
+    };
+    latency: number;
+    packetsLost: number;
   };
-  latency: number;
-  packetsLost: number;
-  timestamp: string;
-  openPorts: number[];
+  openPorts?: number[];
+  timestamp?: string;
 }
 
-export const monitorDevice = async (device: NetworkDevice): Promise<NetworkMetrics> => {
+export const monitorDevice = async (device: NetworkDevice): Promise<DeviceMetrics> => {
   try {
     const response = await fetch(`/api/network/metrics/${device.ip}`);
     const data = await response.json();
     
     return {
-      bandwidth: {
-        upload: data.bandwidth?.upload || 0,
-        download: data.bandwidth?.download || 0,
+      status: data.status || 'offline',
+      metrics: {
+        bandwidth: {
+          upload: data.bandwidth?.upload || 0,
+          download: data.bandwidth?.download || 0,
+        },
+        latency: data.latency || 0,
+        packetsLost: data.packetsLost || 0,
       },
-      latency: data.latency || 0,
-      packetsLost: data.packetsLost || 0,
       timestamp: new Date().toISOString(),
       openPorts: data.openPorts || []
     };
   } catch (error) {
     console.error('Error monitoring device:', error);
     return {
-      bandwidth: { upload: 0, download: 0 },
-      latency: 0,
-      packetsLost: 0,
+      status: 'offline',
+      metrics: {
+        bandwidth: { upload: 0, download: 0 },
+        latency: 0,
+        packetsLost: 0,
+      },
       timestamp: new Date().toISOString(),
       openPorts: []
     };
