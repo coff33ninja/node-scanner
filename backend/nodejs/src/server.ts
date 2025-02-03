@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import networkRoutes from './routes/network.routes';
 import databaseRoutes from './routes/database.routes';
+import serverRoutes from './routes/server.routes';
 import passport from 'passport';
 import { initializeCleanDatabase } from './utils/dbInit';
 import fs from 'fs';
@@ -41,6 +42,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/network', networkRoutes);
 app.use('/api/database', databaseRoutes);
+app.use('/api/server', serverRoutes);
 
 // Error handling
 app.use(errorHandler);
