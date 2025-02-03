@@ -2,6 +2,9 @@ import { deviceDiscovery } from './utils/deviceDiscovery';
 import { portScanner } from './utils/portScanner';
 import { networkMetrics } from './utils/networkMetrics';
 import { powerManager } from './utils/powerManager';
+import { securityScanner } from './utils/securityScanner';
+import { dnsManager } from './utils/dnsManager';
+import { createSNMPCollector } from './utils/snmpCollector';
 
 export class NetworkScanner {
   constructor() {
@@ -9,6 +12,8 @@ export class NetworkScanner {
     this.portScanner = portScanner;
     this.networkMetrics = networkMetrics;
     this.powerManager = powerManager;
+    this.securityScanner = securityScanner;
+    this.dnsManager = dnsManager;
   }
 
   async scanNetwork(ipRange) {
@@ -84,7 +89,30 @@ export class NetworkScanner {
   }
 
   async getDeviceMetrics(ip) {
-    return this.networkMetrics.collectMetrics(ip);
+    const metrics = await this.networkMetrics.collectMetrics(ip);
+    
+    // Add SNMP metrics if available
+    try {
+      const snmpCollector = createSNMPCollector(ip);
+      const snmpMetrics = await snmpCollector.getMetrics();
+      snmpCollector.close();
+      
+      return {
+        ...metrics,
+        snmp: snmpMetrics
+      };
+    } catch (error) {
+      console.error('SNMP collection failed:', error);
+      return metrics;
+    }
+  }
+
+  async scanSecurity(ip) {
+    return this.securityScanner.scanDevice(ip);
+  }
+
+  async checkDNSHealth(domain) {
+    return this.dnsManager.checkHealth(domain);
   }
 
   async wakeOnLan(macAddress) {
