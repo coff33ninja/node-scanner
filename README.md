@@ -1,8 +1,26 @@
 # WOL (Wake-on-LAN) Project
 
-A web application for managing and waking devices on your network using Wake-on-LAN functionality.
+A web application for managing and waking devices on your network using Wake-on-LAN functionality, with support for distributed server nodes reporting to a central hub.
 
----
+## Server Modes
+
+The application can run in three modes:
+- **Standalone**: Single server setup (default)
+- **Hub**: Central server that receives reports from nodes
+- **Node**: Server instance that reports to a hub
+
+### Configuration
+
+Set the server mode in your `.env` file:
+```env
+SERVER_MODE=standalone  # or 'hub' or 'node'
+HUB_URL=http://localhost:5000  # Required if SERVER_MODE=node
+```
+
+### Node-Hub Communication
+- Nodes report to the hub every 30 seconds
+- Metrics include CPU usage, memory usage, and network statistics
+- Each node maintains its own database while sending relevant data to the hub
 
 ## Default Admin Credentials (Development Only)
 
@@ -206,3 +224,4 @@ Developers should consult these files when:
 - Setting up new components
 
 ---
+
