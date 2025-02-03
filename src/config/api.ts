@@ -8,9 +8,6 @@ export const API_ENDPOINTS = {
   VALIDATE_SESSION: `${API_BASE_URL}/auth/validate`,
   REFRESH_TOKEN: `${API_BASE_URL}/auth/refresh`,
   LOGOUT: `${API_BASE_URL}/auth/logout`,
-  CHANGE_PASSWORD: `${API_BASE_URL}/auth/change-password`,
-  DELETE_ACCOUNT: `${API_BASE_URL}/auth/delete-account`,
-  EXPORT_DATA: `${API_BASE_URL}/auth/export-data`,
   
   // Network endpoints
   NETWORK_SCAN: `${API_BASE_URL}/network/scan`,

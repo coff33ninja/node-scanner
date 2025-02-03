@@ -1,17 +1,19 @@
 import express from 'express';
+import { AuthController } from '../controllers/auth.controller';
+import { authMiddleware } from '../middleware/auth.middleware';
 import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
 
-// Rate limiter for profile route (if needed in the future)
+// Public routes
+router.post('/register', AuthController.register);
+router.post('/login', AuthController.login);
+
+// Protected routes
 const profileLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // limit each IP to 100 requests per windowMs
 });
-
-// Placeholder for future routes
-// router.get('/profile', profileLimiter, (req, res) => {
-//     res.send('Profile data');
-// });
+router.get('/profile', profileLimiter, authMiddleware, AuthController.getProfile);
 
 export default router;

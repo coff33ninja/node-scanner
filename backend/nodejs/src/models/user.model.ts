@@ -1,5 +1,4 @@
 import db from '../config/database';
-import { Database, RunResult } from 'better-sqlite3';
 
 export interface User {
     id?: number;
@@ -11,29 +10,29 @@ export interface User {
 }
 
 export const UserModel = {
-    create: (user: User): RunResult => {
+    create: (user: User) => {
         const stmt = db.prepare(
             'INSERT INTO users (username, email, password) VALUES (?, ?, ?)'
         );
         return stmt.run(user.username, user.email, user.password);
     },
 
-    findByEmail: (email: string): User | undefined => {
+    findByEmail: (email: string) => {
         const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
-        return stmt.get(email) as User | undefined;
+        return stmt.get(email);
     },
 
-    findById: (id: number): User | undefined => {
+    findById: (id: number) => {
         const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
-        return stmt.get(id) as User | undefined;
+        return stmt.get(id);
     },
 
-    findAll: (): User[] => {
+    findAll: () => {
         const stmt = db.prepare('SELECT * FROM users');
-        return stmt.all() as User[];
+        return stmt.all();
     },
 
-    update: (id: number, user: Partial<User>): RunResult => {
+    update: (id: number, user: Partial<User>) => {
         const fields = Object.keys(user)
             .map(key => `${key} = ?`)
             .join(', ');
@@ -44,7 +43,7 @@ export const UserModel = {
         return stmt.run(...values, id);
     },
 
-    delete: (id: number): RunResult => {
+    delete: (id: number) => {
         const stmt = db.prepare('DELETE FROM users WHERE id = ?');
         return stmt.run(id);
     }

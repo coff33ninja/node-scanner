@@ -1,16 +1,34 @@
-import { Sidebar } from "./ui/sidebar";
-import { BackendStatus } from "./BackendStatus";
+import { ReactNode } from "react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Home, Settings } from "lucide-react";
 
-const Layout = ({ children }: { children: React.ReactNode }) => {
+interface LayoutProps {
+  children: ReactNode;
+}
+
+const Layout = ({ children }: LayoutProps) => {
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <main className="flex-1 p-6">
-        <div className="flex justify-between items-center mb-4">
-          <BackendStatus />
+    <div className="min-h-screen bg-background">
+      <nav className="border-b">
+        <div className="container flex items-center justify-between h-16">
+          <div className="flex items-center space-x-4">
+            <Link to="/">
+              <Button variant="ghost" size="icon">
+                <Home className="h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
+          <div className="flex items-center space-x-4">
+            <Link to="/settings">
+              <Button variant="ghost" size="icon">
+                <Settings className="h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
         </div>
-        {children}
-      </main>
+      </nav>
+      <main className="container py-6">{children}</main>
     </div>
   );
 };

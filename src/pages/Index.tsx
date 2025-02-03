@@ -2,22 +2,103 @@ import Layout from "../components/Layout";
 import { DeviceCard } from "../components/DeviceCard";
 import { AddDeviceDialog } from "../components/AddDeviceDialog";
 import { DeviceStats } from "../components/DeviceStats";
-import { NetworkScanButton } from "../components/NetworkScanButton";
-import { useNetworkScanner } from "../hooks/useNetworkScanner";
-import { Loader2 } from "lucide-react";
+import { PerformanceMetrics } from "../components/PerformanceMetrics";
+import { useEffect, useState } from "react";
+import { NetworkDevice } from "../utils/networkUtils";
+import { useToast } from "../components/ui/use-toast";
+import axios from 'axios';
+
+const STORAGE_KEY = 'network-devices';
 
 const Index = () => {
-  const { devices: networkDevices, isLoading } = useNetworkScanner();
+  const [devices, setDevices] = useState<NetworkDevice[]>([]);
+  const { toast } = useToast();
 
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-screen">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      </Layout>
-    );
-  }
+  useEffect(() => {
+    const storedDevices = localStorage.getItem(STORAGE_KEY);
+    if (storedDevices) {
+      try {
+        const parsedDevices = JSON.parse(storedDevices);
+        if (Array.isArray(parsedDevices)) {
+          setDevices(parsedDevices);
+        }
+      } catch (error) {
+        console.error('Error parsing stored devices:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load saved devices",
+          variant: "destructive",
+        });
+      }
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    const fetchDevices = async () => {
+      console.log("Fetching devices from API...");
+      try {
+        const response = await axios.get('/api/scan-network');
+        console.log("Response status:", response.status);
+        console.log("Response data:", response.data);
+        
+        if (Array.isArray(response.data)) {
+          setDevices(prevDevices => {
+            const newDevices = response.data.filter(newDevice => 
+              !prevDevices.some(existingDevice => existingDevice.ip === newDevice.ip)
+            );
+            return [...prevDevices, ...newDevices];
+          });
+        } else {
+          console.warn("API response is not an array:", response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching devices:', error);
+        // Don't show error toast for network errors as they're expected when backend is not available
+        if (error.message !== "Network Error") {
+          toast({
+            title: "Error",
+            description: "Failed to fetch network devices",
+            variant: "destructive",
+          });
+        }
+      }
+    };
+
+    fetchDevices();
+  }, [toast]);
+
+  useEffect(() => {
+    if (Array.isArray(devices)) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
+    }
+  }, [devices]);
+
+  const handleAddDevice = (device: NetworkDevice) => {
+    setDevices(prev => {
+      const exists = prev.some(d => d.ip === device.ip);
+      if (exists) {
+        toast({
+          title: "Device Exists",
+          description: "This device is already in your list",
+          variant: "destructive",
+        });
+        return prev;
+      }
+      return [...prev, {
+        ...device,
+        status: 'online',
+        lastSeen: new Date().toLocaleString()
+      }];
+    });
+  };
+
+  const handleDeleteDevice = (deviceToDelete: NetworkDevice) => {
+    setDevices(prev => prev.filter(device => device.ip !== deviceToDelete.ip));
+    toast({
+      title: "Device Removed",
+      description: "Device has been removed from your list",
+    });
+  };
 
   return (
     <Layout>
@@ -28,19 +109,25 @@ const Index = () => {
             Manage and monitor your network devices
           </p>
         </div>
-        <div className="flex gap-2">
-          <NetworkScanButton />
-          <AddDeviceDialog />
-        </div>
+        <AddDeviceDialog onDeviceAdd={handleAddDevice} />
       </div>
 
-      <DeviceStats devices={networkDevices} />
+      <PerformanceMetrics devices={devices} />
+
+      <div className="mt-8">
+        <DeviceStats devices={devices} />
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {networkDevices.map((device) => (
+        {Array.isArray(devices) && devices.map((device: NetworkDevice) => (
           <DeviceCard
-            key={device.mac}
-            {...device}
+            key={device.ip}
+            name={device.name || `Device (${device.ip})`}
+            ip={device.ip}
+            mac={device.mac}
+            status={device.status}
+            lastSeen={device.lastSeen}
+            onDelete={() => handleDeleteDevice(device)}
           />
         ))}
       </div>

@@ -1,48 +1,74 @@
 import { Router } from 'express';
-import { scanNetwork, wakeDevice, shutdownDevice } from '/utils/networkUtils';
+import { NetworkScanner } from '../utils/networkUtils';
+import { authMiddleware } from '../middleware/auth.middleware';
 
 const router = Router();
+const networkScanner = new NetworkScanner();
+
+router.use(authMiddleware);
 
 router.post('/scan', async (req, res) => {
   try {
     const { ipRange } = req.body;
-    const devices = await scanNetwork({ ipRange });
+    const devices = await networkScanner.scanNetwork(ipRange);
     res.json(devices);
   } catch (error) {
     console.error('Scan error:', error);
-    res.status(500).json({ error: (error as Error).message });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/metrics/:ip', async (req, res) => {
+  try {
+    const { ip } = req.params;
+    const metrics = await networkScanner.getDeviceMetrics(ip);
+    if (!metrics) {
+      return res.status(404).json({ error: 'Device not found or unreachable' });
+    }
+    res.json(metrics);
+  } catch (error) {
+    console.error('Metrics error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
 router.post('/wake', async (req, res) => {
   try {
     const { mac } = req.body;
-    const result = await wakeDevice(mac);
+    const result = await networkScanner.wakeOnLan(mac);
     res.json({ success: result });
   } catch (error) {
     console.error('Wake error:', error);
-    res.status(500).json({ error: (error as Error).message });
+    res.status(500).json({ error: error.message });
   }
 });
 
 router.post('/shutdown', async (req, res) => {
   try {
     const { ip, username, password } = req.body;
-    const result = await shutdownDevice(ip, username, password);
+    const result = await networkScanner.shutdownDevice(ip, username, password);
     res.json({ success: result });
   } catch (error) {
     console.error('Shutdown error:', error);
-    res.status(500).json({ error: (error as Error).message });
+    res.status(500).json({ error: error.message });
   }
 });
 
 router.get('/devices', async (req, res) => {
   try {
-    const devices = await scanNetwork({ ipRange: '192.168.1.0/24' });
-    res.json(devices);
+    const devices = await networkScanner.scanNetwork('192.168.1.0/24');
+    const results = await Promise.all(devices.map(async (device) => {
+      const openPorts = await networkScanner.scanPorts(device.ip);
+      return {
+        name: device.name,
+        ip: device.ip,
+        openPorts: openPorts
+      };
+    }));
+    res.json(results);
   } catch (error) {
     console.error('Device scan error:', error);
-    res.status(500).json({ error: (error as Error).message });
+    res.status(500).json({ error: error.message });
   }
 });
 

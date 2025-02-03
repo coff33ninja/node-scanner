@@ -28,6 +28,13 @@ export const initializeCleanDatabase = () => {
       mac_address TEXT UNIQUE NOT NULL,
       ip_address TEXT,
       user_id INTEGER,
+      wake_command TEXT,
+      ping_command TEXT,
+      shutdown_command TEXT,
+      sol_port INTEGER DEFAULT 0,
+      require_confirmation BOOLEAN DEFAULT 0,
+      enable_wake_cron BOOLEAN DEFAULT 0,
+      wake_cron_schedule TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
@@ -71,5 +78,3 @@ export const resetDatabase = () => {
     return false;
   }
 };
-
-// Create settings component to handle database reset

@@ -1,4 +1,4 @@
-import { API_ENDPOINTS, getAuthHeaders } from 'config/api';
+import { API_ENDPOINTS, getAuthHeaders } from '@/config/api';
 
 export interface NetworkDevice {
   id?: string;
@@ -8,8 +8,7 @@ export interface NetworkDevice {
   vendor?: string;
   status: 'online' | 'offline';
   lastSeen: string;
-  hostname?: string;
-  openPorts?: number[];
+  group?: string;
 }
 
 export interface ScanOptions {
@@ -20,8 +19,6 @@ export interface ScanOptions {
 
 export const scanNetwork = async (options: ScanOptions): Promise<NetworkDevice[]> => {
   try {
-    console.log('Starting ARP network scan with options:', options);
-    
     const response = await fetch(API_ENDPOINTS.NETWORK_SCAN, {
       method: 'POST',
       headers: {
@@ -34,10 +31,7 @@ export const scanNetwork = async (options: ScanOptions): Promise<NetworkDevice[]
       throw new Error('Network scan failed');
     }
     
-    const devices = await response.json();
-    console.log('Scanned devices:', devices);
-    
-    return devices;
+    return await response.json();
   } catch (error) {
     console.error('Error scanning network:', error);
     throw error;
