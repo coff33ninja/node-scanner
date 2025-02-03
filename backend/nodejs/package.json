@@ -27,6 +27,7 @@
     "passport-jwt": "^4.0.1",
     "qrcode": "^1.5.4",
     "speakeasy": "^2.0.0",
+    "type": "module",
     "winston": "^3.17.0",
     "zod": "^3.24.1"
   },

@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0, 0%, 0%; /* Set background to black */
+    --foreground: 0, 0%, 100%; /* Set foreground to white */
+
+    --card: 0, 0%, 10%; /* Update card color for a subtle contrast */
+    --card-foreground: 0, 0%, 100%; /* Update card foreground color */
+
+    --popover: 0, 0%, 10%; /* Update popover color */
+    --popover-foreground: 0, 0%, 100%; /* Update popover foreground color */
+
+    --primary: 0, 0%, 100%; /* Update primary color */
+    --primary-foreground: 0, 0%, 0%; /* Update primary foreground color */
+
+    --secondary: 0, 0%, 50%; /* Update secondary color */
+    --secondary-foreground: 0, 0%, 100%; /* Update secondary foreground color */
+
+    --muted: 0, 0%, 30%; /* Update muted color */
+    --muted-foreground: 0, 0%, 100%; /* Update muted foreground color */
+
+    --accent: 0, 0%, 50%; /* Update accent color */
+    --accent-foreground: 0, 0%, 100%; /* Update accent foreground color */
+
+    --destructive: 0, 0%, 30%; /* Update destructive color */
+    --destructive-foreground: 0, 0%, 100%; /* Update destructive foreground color */
+
+    --border: 0, 0%, 30%; /* Update border color */
+    --input: 0, 0%, 30%; /* Update input color */
+    --ring: 0, 0%, 80%; /* Update ring color */
+
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
