@@ -22,9 +22,8 @@ export class NetworkScanner {
       const hosts = Math.pow(2, 32 - parseInt(subnet));
       
       const devices = [];
+      const batchSize = 25; // Increased batch size for better performance
       
-      // Scan network in parallel with batching
-      const batchSize = 10;
       for (let i = 0; i < hosts; i += batchSize) {
         const batch = Array.from({ length: Math.min(batchSize, hosts - i) }, (_, j) => {
           const ip = `${baseIpParts[0]}.${baseIpParts[1]}.${baseIpParts[2]}.${i + j + 1}`;
@@ -32,7 +31,16 @@ export class NetworkScanner {
         });
         
         const results = await Promise.all(batch);
-        devices.push(...results.filter(Boolean));
+        const validDevices = results.filter(Boolean);
+        
+        // Enhance device information with vendor data
+        for (const device of validDevices) {
+          if (device.mac) {
+            device.vendor = await this.deviceDiscovery.getVendor(device.mac);
+          }
+        }
+        
+        devices.push(...validDevices);
       }
 
       return devices;
@@ -43,8 +51,12 @@ export class NetworkScanner {
   }
 
   async scanDevice(ip) {
+    console.log(`Scanning device: ${ip}`);
     const isReachable = await this.deviceDiscovery.pingHost(ip);
-    if (!isReachable) return null;
+    if (!isReachable) {
+      console.log(`Device ${ip} is not reachable`);
+      return null;
+    }
 
     const [mac, hostname, openPorts] = await Promise.all([
       this.deviceDiscovery.getMacAddress(ip),
@@ -52,16 +64,23 @@ export class NetworkScanner {
       this.portScanner.scanCommonPorts(ip)
     ]);
 
-    if (!mac && openPorts.length === 0) return null;
+    if (!mac && openPorts.length === 0) {
+      console.log(`No MAC or open ports found for ${ip}`);
+      return null;
+    }
 
-    return {
+    const device = {
       ip,
       mac: mac || 'Unknown',
       name: hostname || `Device (${ip})`,
       status: 'online',
       lastSeen: new Date().toISOString(),
-      openPorts
+      openPorts,
+      vendor: null // Will be populated later
     };
+
+    console.log(`Device found:`, device);
+    return device;
   }
 
   async getDeviceMetrics(ip) {

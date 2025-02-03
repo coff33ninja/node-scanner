@@ -1,8 +1,11 @@
 import { networkInterfaces } from 'os';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import dns from 'dns';
+import { ping } from 'net-ping';
 
 const execAsync = promisify(exec);
+const dnsResolve = promisify(dns.reverse);
 
 export class DeviceDiscovery {
   async getLocalNetwork(): Promise<string> {
@@ -20,12 +23,13 @@ export class DeviceDiscovery {
 
   async pingHost(ip: string): Promise<boolean> {
     try {
-      const cmd = process.platform === 'win32'
-        ? `ping -n 1 -w 1000 ${ip}`
-        : `ping -c 1 -W 1 ${ip}`;
-      
-      await execAsync(cmd);
-      return true;
+      const session = ping.createSession();
+      return new Promise((resolve) => {
+        session.pingHost(ip, (error) => {
+          session.close();
+          resolve(!error);
+        });
+      });
     } catch {
       return false;
     }
@@ -47,9 +51,20 @@ export class DeviceDiscovery {
 
   async getHostname(ip: string): Promise<string | null> {
     try {
-      const { stdout } = await execAsync(`nslookup ${ip}`);
-      const nameMatch = stdout.match(/name\s*=\s*([^\s]+)/i);
-      return nameMatch ? nameMatch[1] : null;
+      const hostnames = await dnsResolve(ip);
+      return hostnames[0] || null;
+    } catch {
+      return null;
+    }
+  }
+
+  async getVendor(mac: string): Promise<string | null> {
+    try {
+      const response = await fetch(`https://api.macvendors.com/${mac}`);
+      if (response.ok) {
+        return await response.text();
+      }
+      return null;
     } catch {
       return null;
     }
