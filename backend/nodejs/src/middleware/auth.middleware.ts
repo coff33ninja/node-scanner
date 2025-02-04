@@ -1,10 +1,21 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { validateApiKey } from '../utils/apiKeyGenerator';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_here';
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
     try {
+        // First check for API key
+        const apiKey = req.headers['x-api-key'];
+        if (apiKey && typeof apiKey === 'string') {
+            if (validateApiKey(apiKey)) {
+                next();
+                return;
+            }
+        }
+
+        // Fall back to JWT token check
         const token = req.headers.authorization?.split(' ')[1];
         
         if (!token) {

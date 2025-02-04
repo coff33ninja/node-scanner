@@ -14,10 +14,12 @@ import {
   Save,
   RefreshCw,
   Download,
-  Server
+  Server,
+  Key,
+  Copy
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -34,6 +36,9 @@ const Settings = () => {
     twoFactor: false,
     auditLog: true
   });
+
+  const [apiKeys, setApiKeys] = useState([]);
+  const [isGeneratingKey, setIsGeneratingKey] = useState(false);
 
   const handleSave = async () => {
     setIsLoading(true);
@@ -60,6 +65,34 @@ const Settings = () => {
       description: "Opening node setup wizard...",
     });
     // Implement node setup wizard logic here
+  };
+
+  const handleGenerateApiKey = async () => {
+    setIsGeneratingKey(true);
+    try {
+      const response = await fetch('/api/generate-api-key', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await response.json();
+      if (data.apiKey) {
+        setApiKeys(prev => [...prev, data.apiKey]);
+        toast({
+          title: "API Key Generated",
+          description: "New API key has been created successfully.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate API key",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingKey(false);
+    }
   };
 
   return (
@@ -236,6 +269,39 @@ const Settings = () => {
                   onCheckedChange={(checked) => setSettings({ ...settings, auditLog: checked })}
                 />
               </div>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center space-x-4 mb-6">
+              <Key className="h-5 w-5" />
+              <h2 className="text-xl font-semibold">API Keys</h2>
+            </div>
+            <div className="space-y-4">
+              <Button
+                onClick={handleGenerateApiKey}
+                disabled={isGeneratingKey}
+              >
+                {isGeneratingKey ? "Generating..." : "Generate New API Key"}
+              </Button>
+              {apiKeys.map((key, index) => (
+                <div key={index} className="flex items-center justify-between p-4 border rounded">
+                  <code className="text-sm">{key}</code>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(key);
+                      toast({
+                        title: "Copied",
+                        description: "API key copied to clipboard",
+                      });
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
             </div>
           </Card>
         </TabsContent>
