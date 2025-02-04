@@ -12,7 +12,9 @@ import {
   Globe, 
   Palette,
   Save,
-  RefreshCw
+  RefreshCw,
+  Download,
+  Server
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
@@ -35,7 +37,6 @@ const Settings = () => {
 
   const handleSave = async () => {
     setIsLoading(true);
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     setIsLoading(false);
     
@@ -45,9 +46,25 @@ const Settings = () => {
     });
   };
 
+  const handleNodeDownload = () => {
+    toast({
+      title: "Download Started",
+      description: "Node setup package is being downloaded.",
+    });
+    // Implement actual download logic here
+  };
+
+  const handleNodeSetup = () => {
+    toast({
+      title: "Node Setup",
+      description: "Opening node setup wizard...",
+    });
+    // Implement node setup wizard logic here
+  };
+
   return (
     <Layout>
-      <div className="mb-8 animate-fade-in">
+      <div className="mb-8">
         <h1 className="text-3xl font-bold">Settings</h1>
         <p className="text-muted-foreground">
           Configure your application preferences
@@ -55,7 +72,7 @@ const Settings = () => {
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 gap-4">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 gap-4">
           <TabsTrigger value="general" className="space-x-2">
             <Globe className="h-4 w-4" />
             <span>General</span>
@@ -71,6 +88,10 @@ const Settings = () => {
           <TabsTrigger value="security" className="space-x-2">
             <Shield className="h-4 w-4" />
             <span>Security</span>
+          </TabsTrigger>
+          <TabsTrigger value="nodes" className="space-x-2">
+            <Server className="h-4 w-4" />
+            <span>Nodes</span>
           </TabsTrigger>
         </TabsList>
 
@@ -214,6 +235,47 @@ const Settings = () => {
                   checked={settings.auditLog}
                   onCheckedChange={(checked) => setSettings({ ...settings, auditLog: checked })}
                 />
+              </div>
+            </div>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="nodes" className="space-y-6">
+          <Card className="p-6">
+            <div className="flex items-center space-x-4 mb-6">
+              <Server className="h-5 w-5" />
+              <h2 className="text-xl font-semibold">Node Management</h2>
+            </div>
+            <div className="space-y-6">
+              <div className="grid gap-4">
+                <div className="flex flex-col space-y-2">
+                  <h3 className="font-medium">Download Node Package</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Download the node setup package to install on your remote servers
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleNodeDownload}
+                    className="w-fit"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Node Package
+                  </Button>
+                </div>
+                <div className="flex flex-col space-y-2">
+                  <h3 className="font-medium">Node Setup Wizard</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Configure and deploy a new node on your current machine
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleNodeSetup}
+                    className="w-fit"
+                  >
+                    <Server className="h-4 w-4 mr-2" />
+                    Setup New Node
+                  </Button>
+                </div>
               </div>
             </div>
           </Card>

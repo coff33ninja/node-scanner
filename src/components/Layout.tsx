@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, Settings } from "lucide-react";
+import { Home, Settings, Server } from "lucide-react";
 
 interface LayoutProps {
   children: ReactNode;
@@ -16,6 +16,11 @@ const Layout = ({ children }: LayoutProps) => {
             <Link to="/">
               <Button variant="ghost" size="icon">
                 <Home className="h-5 w-5" />
+              </Button>
+            </Link>
+            <Link to="/nodes">
+              <Button variant="ghost" size="icon">
+                <Server className="h-5 w-5" />
               </Button>
             </Link>
           </div>
