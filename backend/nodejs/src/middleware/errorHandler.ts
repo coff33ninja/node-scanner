@@ -7,8 +7,17 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  logger.error(err.message);
+  // Log the error with request details
+  logger.error({
+    error: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    ip: req.ip,
+    timestamp: new Date().toISOString()
+  });
 
+  // Validation errors
   if (err.name === 'ValidationError') {
     return res.status(400).json({
       success: false,
@@ -17,23 +26,38 @@ export const errorHandler = (
     });
   }
 
-  if (err.name === 'UnauthorizedError') {
+  // Authentication errors
+  if (err.name === 'UnauthorizedError' || err.name === 'JsonWebTokenError') {
     return res.status(401).json({
       success: false,
-      error: 'Unauthorized'
+      error: 'Authentication Error',
+      message: 'Invalid or expired token'
     });
   }
 
-  if (err.name === 'JsonWebTokenError') {
-    return res.status(401).json({
+  // Rate limiting errors
+  if (err.name === 'TooManyRequests') {
+    return res.status(429).json({
       success: false,
-      error: 'Invalid token'
+      error: 'Rate Limit Exceeded',
+      message: 'Too many requests, please try again later'
     });
   }
 
-  // Default to 500 server error
+  // Database errors
+  if (err.name === 'SQLiteError') {
+    logger.error('Database Error:', err);
+    return res.status(500).json({
+      success: false,
+      error: 'Database Error',
+      message: 'An error occurred while accessing the database'
+    });
+  }
+
+  // Default server error
   return res.status(500).json({
     success: false,
-    error: 'Server Error'
+    error: 'Server Error',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
   });
 };
