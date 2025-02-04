@@ -1,14 +1,15 @@
 import axios, { AxiosError } from 'axios';
-import { toast } from '@/hooks/use-toast';
-import { ApiError } from '@/types/api';
+import { toast } from '@/components/ui/use-toast';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+interface ApiError {
+  message: string;
+  status?: number;
+}
 
 const apiClient = axios.create({
-  baseURL: BASE_URL,
-  timeout: 15000,
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
   }
 });
 
@@ -111,7 +112,7 @@ apiClient.interceptors.response.use(
         variant: "destructive",
       });
     }
-
+    
     return Promise.reject(error);
   }
 );
