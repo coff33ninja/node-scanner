@@ -1,11 +1,12 @@
 import axios, { AxiosError } from 'axios';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
+import { ApiError } from '@/types/api';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000, // Increased timeout
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -41,61 +42,78 @@ apiClient.interceptors.request.use((config) => {
 // Response interceptor with enhanced error handling
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
+  (error: unknown) => {
     console.error('API Response Error:', error);
     
-    // Network errors
-    if (!error.response) {
+    // Handle Axios errors
+    if (axios.isAxiosError(error)) {
+      // Network errors
+      if (!error.response) {
+        toast({
+          title: "Network Error",
+          description: "Please check your internet connection",
+          variant: "destructive",
+        });
+        return Promise.reject(error);
+      }
+
+      // Authentication errors
+      if (error.response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('api_key');
+        
+        toast({
+          title: "Authentication Error",
+          description: "Please log in again",
+          variant: "destructive",
+        });
+        
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      // Rate limiting errors
+      if (error.response.status === 429) {
+        toast({
+          title: "Too Many Requests",
+          description: "Please wait before trying again",
+          variant: "destructive",
+        });
+        return Promise.reject(error);
+      }
+
+      // Server errors
+      if (error.response.status >= 500) {
+        toast({
+          title: "Server Error",
+          description: "An unexpected error occurred. Please try again later",
+          variant: "destructive",
+        });
+        return Promise.reject(error);
+      }
+
+      // Other client errors
+      const errorMessage = error.response.data?.message || 'An unexpected error occurred';
       toast({
-        title: "Network Error",
-        description: "Please check your internet connection",
+        title: "Error",
+        description: errorMessage,
         variant: "destructive",
       });
-      return Promise.reject(error);
-    }
-
-    // Authentication errors
-    if (error.response.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('api_key');
-      
+    } else if (error instanceof Error) {
+      // Handle standard Error objects
       toast({
-        title: "Authentication Error",
-        description: "Please log in again",
+        title: "Error",
+        description: error.message,
         variant: "destructive",
       });
-      
-      window.location.href = '/login';
-      return Promise.reject(error);
-    }
-
-    // Rate limiting errors
-    if (error.response.status === 429) {
+    } else {
+      // Handle unknown errors
       toast({
-        title: "Too Many Requests",
-        description: "Please wait before trying again",
+        title: "Error",
+        description: "An unexpected error occurred",
         variant: "destructive",
       });
-      return Promise.reject(error);
     }
-
-    // Server errors
-    if (error.response.status >= 500) {
-      toast({
-        title: "Server Error",
-        description: "An unexpected error occurred. Please try again later",
-        variant: "destructive",
-      });
-      return Promise.reject(error);
-    }
-
-    // Other client errors
-    const errorMessage = error.response?.data?.message || 'An unexpected error occurred';
-    toast({
-      title: "Error",
-      description: errorMessage,
-      variant: "destructive",
-    });
 
     return Promise.reject(error);
   }
