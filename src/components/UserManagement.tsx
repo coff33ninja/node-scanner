@@ -16,6 +16,8 @@ interface User {
   lastActive: string;
 }
 
+type UserRole = 'admin' | 'user' | 'viewer';
+
 const UserManagement = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -24,7 +26,7 @@ const UserManagement = () => {
     username: '',
     email: '',
     password: '',
-    role: 'user' as const
+    role: 'user' as UserRole
   });
 
   const { data: users, isLoading } = useQuery({
@@ -133,7 +135,7 @@ const UserManagement = () => {
               <select
                 className="w-full p-2 border rounded"
                 value={newUser.role}
-                onChange={(e) => setNewUser({ ...newUser, role: e.target.value as 'admin' | 'user' | 'viewer' })}
+                onChange={(e) => setNewUser({ ...newUser, role: e.target.value as UserRole })}
               >
                 <option value="user">User</option>
                 <option value="admin">Admin</option>
