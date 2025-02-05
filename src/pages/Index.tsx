@@ -5,9 +5,10 @@ import { DeviceGroups } from "../components/DeviceGroups";
 import { NetworkMetrics } from "../components/NetworkMetrics";
 import { AddDeviceDialog } from "../components/AddDeviceDialog";
 import { DeviceStats } from "../components/DeviceStats";
+import { MonitoringDashboard } from "../components/MonitoringDashboard";
 import { useEffect, useState } from "react";
 import { NetworkDevice } from "../utils/networkUtils";
-import { useToast } from "../components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import axios from 'axios';
 
 const STORAGE_KEY = 'network-devices';
@@ -115,7 +116,7 @@ const Index = () => {
       </div>
 
       <div className="grid gap-6">
-        <NetworkMetrics devices={devices} />
+        <MonitoringDashboard devices={devices} />
         
         <div className="grid gap-6 md:grid-cols-2">
           <NetworkTopology devices={devices} />
